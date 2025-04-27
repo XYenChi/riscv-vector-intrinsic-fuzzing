@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 #include <map>
 #include <ostream>
 #include <random>
@@ -1717,8 +1718,29 @@ static void emitOneDVerificationCode(std::ostream &os, OperatorBase *op,
   }
   os << "};\n";
 
-  os << "for (int i=0; i<" << length << ";++i)\n";
-  os << "if(" << output->id << "[i] != tmp[i]) {\n\treturn 0;\n}\n";
+  os << "for (int i=0; i<" << length << ";++i){\n";
+  os << "printf(\"";
+  os << output->id;
+  os << "[\%d] = ";
+  if (output->dt == DataTypeEnum::Int64_t || output->dt == DataTypeEnum::Uint64_t)
+    os << "\%ld, tmp:\%ld\\n\"";
+  else
+    os << "\%d, tmp:\%d\\n\"";
+  os << ", i, ";
+  os << output->id;
+  os <<"[i], tmp[i]);\n";
+  os << "if(" << output->id << "[i] != tmp[i]) {\n\t";
+  os << "printf(\"FAILED VALUE:";
+  os << output->id;
+  os << "[\%d] = ";
+  if (output->dt == DataTypeEnum::Int64_t || output->dt == DataTypeEnum::Uint64_t)
+    os << "\%ld, tmp:\%ld\\n\"";
+  else
+    os << "\%d, tmp:\%d\\n\"";
+  os << ", i, ";
+  os << output->id;
+  os <<"[i], tmp[i]);";
+  os << "\n}\n}";
 
   os << "\treturn 1;\n";
 }
