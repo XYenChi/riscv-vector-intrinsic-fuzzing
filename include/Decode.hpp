@@ -69,16 +69,16 @@ typedef unsigned __int128 uint128_t;
   BODY
 
 #define VI_VV_MUL_ADD_LOOP(BODY)                                               \
-  auto vd1 = dataA[i];                                                         \
-  auto vs1 = dataB[i];                                                         \
-  auto vs2 = dataC[i];                                                         \
+  auto vd1 = dataOut[i];                                                       \
+  auto vs1 = dataA[i];                                                         \
+  auto vs2 = dataB[i];                                                         \
   auto &vd0 = dataOut[i];                                                      \
   BODY
 
 #define VI_VX_MUL_ADD_LOOP(BODY)                                               \
-  auto vd1 = dataA[i];                                                         \
-  auto rs1 = *dataB;                                                           \
-  auto vs2 = dataC[i];                                                         \
+  auto vd1 = dataOut[i];                                                       \
+  auto rs1 = *dataA;                                                           \
+  auto vs2 = dataB[i];                                                         \
   auto &vd0 = dataOut[i];                                                      \
   BODY
 
@@ -95,16 +95,16 @@ typedef unsigned __int128 uint128_t;
   BODY
 
 #define VI_VV_MUL_ADD_LOOP_WIDEN(BODY)                                         \
-  auto vd_w = dataA[i];                                                        \
-  auto vs1 = dataB[i];                                                         \
-  auto vs2 = dataC[i];                                                         \
+  auto vd_w = dataOut[i];                                                      \
+  auto vs1 = dataA[i];                                                         \
+  auto vs2 = dataB[i];                                                         \
   auto &vd = dataOut[i];                                                       \
   BODY
 
 #define VI_VX_MUL_ADD_LOOP_WIDEN(BODY)                                         \
-  auto vd_w = dataA[i];                                                        \
-  auto rs1 = *dataB;                                                           \
-  auto vs2 = dataC[i];                                                         \
+  auto vd_w = dataOut[i];                                                      \
+  auto rs1 = *dataA;                                                           \
+  auto vs2 = dataB[i];                                                         \
   auto &vd = dataOut[i];                                                       \
   BODY
 
