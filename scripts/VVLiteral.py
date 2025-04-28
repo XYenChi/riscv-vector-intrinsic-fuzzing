@@ -168,23 +168,23 @@ vv_literal_mask_body = '''
 '''
 
 vv_literal_mask_body_destructive = '''
-  assert(a->length == b->length && c->length == 1 && a->length == d->length);
+  assert(a->length == b->length && a->length == c->length && a->length == d->length);
 
   auto length = a->length;
 
   auto dataM = getRawPointer(a);
-  auto dataA = getRawPointer(b);
-  auto dataB = getRawPointer(c);
-  auto dataOut = getRawPointer(d);
+  auto dataOut = getRawPointer(b);
+  auto dataA = getRawPointer(c);
+  auto dataB = getRawPointer(d);
 
   auto sew = op->typeInfo->sew.to_int();
 
   #pragma push_macro("VI_VFP_VV_LOOP")
   #undef VI_VFP_VV_LOOP
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
-  RIF::RawDatumOperand vd(dataA[i]);                                           \\
-  RIF::RawDatumOperand vs1(dataB[i]);                                          \\
-  RIF::RawDatumOperand vs2(dataC[i]);                                          \\
+  RIF::RawDatumOperand vd(dataOut[i]);                                         \\
+  RIF::RawDatumOperand vs1(dataA[i]);                                          \\
+  RIF::RawDatumOperand vs2(dataB[i]);                                          \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -204,9 +204,9 @@ vv_literal_mask_body_destructive = '''
   #pragma push_macro("VI_VFP_VV_LOOP_WIDE")
   #undef VI_VFP_VV_LOOP_WIDE
   #define VI_VFP_VV_LOOP_WIDE(BODY16, BODY32)                                  \\
-  RIF::RawDatumOperand vd(dataA[i]);                                           \\
-  RIF::RawDatumOperand vs1(dataB[i]);                                          \\
-  RIF::RawDatumOperand vs2(dataC[i]);                                          \\
+  RIF::RawDatumOperand vd(dataOut[i]);                                         \\
+  RIF::RawDatumOperand vs1(dataA[i]);                                          \\
+  RIF::RawDatumOperand vs2(dataB[i]);                                          \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     vs2 = f16_to_f32(vs2);                                                     \\
@@ -447,7 +447,7 @@ def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
     elif "TailUndisturbed" in op_attr and "MaskUndisturbed" in op_attr : # tumu
       ret += vv_literal_mask_body + include_literal("v" + op_id + ".h") + vv_tumu_literal_mask_end
     else : # No explicit policy specified
-      ret += vv_literal_mask_body + include_literal("v" + op_id + ".h") + vv_literal_mask_end
+      ret += vv_literal_mask_body + include_literal("v" + op_id + ".h") + vv_tama_literal_mask_end
   else :
     if "TailUndisturbed" in op_attr :
         ret += vv_tu_literal_nonmask_body + include_literal("v" + op_id + ".h") + vv_tu_literal_nonmask_end
@@ -463,8 +463,6 @@ def create_destructive_vv_op(op_type, op_id, op_attr, output_type, input_num, in
   for i in range(input_num) :
     var = chr(ord('a') + i)
     ret += "  auto " + var + " = static_cast<RIF::" + input_types[i] + "Val *>(op->inputs[" + str(i) + "]);\n"
-  var = chr(ord('a') + input_num)
-  ret += "  auto " + var + " = static_cast<RIF::" + output_type + "Val *>(op->outputs[0]);\n"
   if "MaskedOperation" in op_attr :
     if "TailAgnostic" in op_attr and "MaskAgnostic" in op_attr : # tama
       ret += vv_literal_mask_body_destructive + include_literal("v" + op_id + ".h") + vv_tama_literal_mask_destructive_end
