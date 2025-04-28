@@ -77,8 +77,10 @@ v_tu_literal_nonmask_end = '''
 
 
 v_literal_mask_end = '''
+    } else { // maskedoff element is agnostic
+      memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
     }
-  }
+}
 }
 '''
 
