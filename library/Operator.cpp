@@ -848,7 +848,7 @@ struct CodeGenForVmsbfVmsifVmsof : CodeGenForOperator {
   void updateFirst(const std::string &first, std::vector<std::string> &args) {
     int booleanSew = getBooleanSew(vlTypeInfo);
     auto vecVs2 =
-        hasMask(op) ? op->opAttr & NoMaskedOff ? args[1] : args[2] : args[0];
+        hasMask(op) ? args[1] : args[0];
     if (hasMask(op)) {
       auto vecM = args[0];
       os << first << " = __riscv_vfirst_m_b" << booleanSew << "_m(" << vecM
@@ -1098,17 +1098,10 @@ struct CodeGenForLoadStore : CodeGenForOperator {
     if (hasMask(op)) {
       auto inputM = opInputs[0]; // mask
       ret.push_back(loadOneDToVector(os, inputM.second, inputM.first, op));
-      if (isLoadType() && !(op->opAttr & NoMaskedOff)) { // non-tama load
-        auto inputMO = opInputs[1];                      // maskedoff
-        ret.push_back(loadOneDToVector(os, inputMO.second, inputMO.first, op));
-      }
-    } else if (isLoadType() && hasTU(op)) { // tu load
-      auto inputMO = opInputs[0];           // maskedoff
-      ret.push_back(loadOneDToVector(os, inputMO.second, inputMO.first, op));
     }
     if (isLoadType()) {
       auto inputBase =
-          hasMask(op) ? op->opAttr & NoMaskedOff ? opInputs[1] : opInputs[2]
+          hasMask(op) ? opInputs[1]
           : hasTU(op) ? opInputs[1]
                       : opInputs[0];
       ret.push_back(inputBase.first);
@@ -1125,19 +1118,10 @@ struct CodeGenForLoadStore : CodeGenForOperator {
     if (hasMask(op)) {
       auto inputM = opInputs[0]; // mask
       ret.push_back(loadOneDToVector(os, inputM.second, inputM.first, op));
-      if (isLoadType() &&
-          !(op->opAttr & NoMaskedOff)) { // non-tama indexed load
-        auto inputMO = opInputs[1];      // maskedoff
-        ret.push_back(loadOneDToVector(os, inputMO.second, inputMO.first, op));
-      }
-    } else if (isLoadType() && hasTU(op)) { // tu load
-      auto inputMO = opInputs[0];           // maskedoff
-      ret.push_back(loadOneDToVector(os, inputMO.second, inputMO.first, op));
     }
 
     std::pair<std::string, ValueBase *> inputIdx =
-        isLoadType() ? (hasMask(op) ? op->opAttr & NoMaskedOff ? opInputs[2]
-                                                               : opInputs[3]
+        isLoadType() ? (hasMask(op) ?  opInputs[2]
                         : hasTU(op) ? opInputs[2]
                                     : opInputs[1])
                      : (hasMask(op) ? opInputs[2] : opInputs[1]);
@@ -1168,7 +1152,7 @@ struct CodeGenForLoadStore : CodeGenForOperator {
         loadOneDToVector(os, inputIdx.second, inputIdx.first, op);
     if (isLoadType()) {
       auto inputBase =
-          hasMask(op) ? op->opAttr & NoMaskedOff ? opInputs[1] : opInputs[2]
+          hasMask(op) ? opInputs[1]
           : hasTU(op) ? opInputs[1]
                       : opInputs[0];
       ret.push_back(inputBase.first);
@@ -1217,23 +1201,15 @@ struct CodeGenForLoadStore : CodeGenForOperator {
     if (hasMask(op)) {
       auto inputM = opInputs[0]; // mask
       ret.push_back(loadOneDToVector(os, inputM.second, inputM.first, op));
-      if (isLoadType() &&
-          !(op->opAttr & NoMaskedOff)) { // tama doesn't have maskedoff
-        auto inputMO = opInputs[1];      // maskedoff
-        ret.push_back(loadOneDToVector(os, inputMO.second, inputMO.first, op));
-      }
-    } else if (isLoadType() && hasTU(op)) { // strided load for tu
-      auto inputMO = opInputs[0];           // maskedoff
-      ret.push_back(loadOneDToVector(os, inputMO.second, inputMO.first, op));
     }
 
     if (isLoadType()) {
       auto inputBase =
-          hasMask(op) ? op->opAttr & NoMaskedOff ? opInputs[1] : opInputs[2]
+          hasMask(op) ? opInputs[1]
           : hasTU(op) ? opInputs[1]
                       : opInputs[0];
       auto inputStride =
-          hasMask(op) ? op->opAttr & NoMaskedOff ? opInputs[2] : opInputs[3]
+          hasMask(op) ? opInputs[2]
           : hasTU(op) ? opInputs[2]
                       : opInputs[1];
       ret.push_back(inputBase.first);
@@ -1272,12 +1248,12 @@ struct CodeGenForLoadStore : CodeGenForOperator {
     int skipBaseAddress = -1;
     int increaseBaseAddressByStrideVlen = -1;
     if (type == Lxei)
-      skipBaseAddress = hasMask(op) ? op->opAttr & NoMaskedOff ? 1 : 2
+      skipBaseAddress = hasMask(op) ? 1
                         : hasTU(op) ? 1
                                     : 0;
     if (type == Lse) {
       increaseBaseAddressByStrideVlen = hasMask(op)
-                                            ? op->opAttr & NoMaskedOff ? 1 : 2
+                                            ? 1
                                         : hasTU(op) ? 1
                                                     : 0;
     }
@@ -1288,9 +1264,7 @@ struct CodeGenForLoadStore : CodeGenForOperator {
       std::string &rawID = input.first;
       ValueBase *value = input.second;
       if (i == increaseBaseAddressByStrideVlen) {
-        auto strideID = hasMask(op) ? op->opAttr & NoMaskedOff
-                                          ? opInputs[2].first
-                                          : opInputs[3].first
+        auto strideID = hasMask(op) ? opInputs[2].first
                         : hasTU(op) ? opInputs[2].first
                                     : opInputs[1].first;
         os << rawID << " += vl * " << strideID << ";\n";
@@ -1327,7 +1301,7 @@ struct CodeGenForLoadStore : CodeGenForOperator {
 
     if (type == Lse) { // strided load
       auto inputStride =
-          hasMask(op) ? op->opAttr & NoMaskedOff ? opInputs[2] : opInputs[3]
+          hasMask(op) ? opInputs[2]
           : hasTU(op) ? opInputs[2]
                       : opInputs[1];
       auto strideID = inputStride.first;
@@ -1336,7 +1310,7 @@ struct CodeGenForLoadStore : CodeGenForOperator {
       auto stride = *static_cast<ScalarIntXLenVal *>(inputStride.second)->ptr;
       if (stride < 0) {
         auto inputBase =
-            hasMask(op) ? op->opAttr & NoMaskedOff ? opInputs[1] : opInputs[2]
+            hasMask(op) ? opInputs[1]
             : hasTU(op) ? opInputs[1]
                         : opInputs[0];
         auto baseAddr = inputBase.first;
@@ -1398,7 +1372,7 @@ struct CodeGenForLoadStore : CodeGenForOperator {
         os << "else {}\n";
       } else if (type == Lse) {
         auto inputStride =
-            hasMask(op) ? op->opAttr & NoMaskedOff ? opInputs[2] : opInputs[3]
+            hasMask(op) ? opInputs[2]
             : hasTU(op) ? opInputs[2]
                         : opInputs[1];
         auto stride = inputStride.second;
@@ -1443,7 +1417,7 @@ struct CodeGenForLoadStore : CodeGenForOperator {
       incrementRawPointerByVLEN();
       if (type == Lse) {
         std::string strideID =
-            hasMask(op)   ? op->opAttr & NoMaskedOff ? args[2] : args[3]
+            hasMask(op) ? args[2]
               : (hasTU(op)) ? args[2]
                           : args[1];
         os << tripCounter << " += vl * " << strideID << ";\n";
