@@ -352,17 +352,8 @@ static void genIntrinsicFuncSuffix(std::ostream &os, OperatorBase *op,
   const OperatorAttrT &opAttr = op->opAttr;
   if (isExplicitPolicy(op)) {
     os << "_";
-    if (hasTA(op)) {
-      assert(!hasTU(op));
-      os << "ta";
-    }
     if (hasTU(op)) {
-      assert(!hasTA(op));
       os << "tu";
-    }
-    if (hasMA(op)) {
-      assert(hasMask(op) && !hasMU(op));
-      os << "ma";
     }
     if (hasMU(op)) {
       assert(hasMask(op) && !hasMA(op));
@@ -371,9 +362,8 @@ static void genIntrinsicFuncSuffix(std::ostream &os, OperatorBase *op,
     if (opAttr & ReductionOperation && hasMask(op)) {
       os << "m";
     }
-
     os << "(";
-  } else {
+}else {
     if (hasMask(op))
       os << "_m (";
     else if (hasNonmask(op))
@@ -388,9 +378,6 @@ static void genIntrinsicFuncSuffix(std::ostream &os, OperatorBase *op,
     os << arg << ", ";
 
   if (opAttr & OperatorAttr::HaveVLParameter) {
-    if (haveTailPolicy(op) && !(op->opAttr & ReductionOperation))
-      os << "tail_vl);\n";
-    else
       os << "vl);\n";
   } else if (opAttr & OperatorAttr::NoVLParameter)
     os << ");\n";
@@ -519,12 +506,8 @@ static void storeScalarToScalar(std::ostream &os, const std::string &lhs,
 
 static std::string getOpSuffix(OperatorBase *op) {
   std::string s = "_";
-  if (hasTA(op))
-    s += "ta";
   if (hasTU(op))
     s += "tu";
-  if (hasMA(op))
-    s += "ma";
   if (hasMU(op))
     s += "mu";
   if (s == "_" && hasMask(op))
@@ -644,7 +627,7 @@ struct CodeGenForReductionOperator : CodeGenForOperator {
     std::string vecZero = getVectorFromConstant(os, 0, *output->typeInfo);
     std::string vecReduction =
         getVectorFromVector(os, vecZero, *output->typeInfo);
-    if (hasTA(op) || hasTU(op)) {
+    if (hasMask(op) || hasTU(op)) {
       os << "// This function initializes the output elements according to\n"
             "// its\n"
             "// tail policy and\n"
@@ -666,7 +649,7 @@ struct CodeGenForReductionOperator : CodeGenForOperator {
             "// tail value in the beginning\n"
             "// before performing actual computing, namely, getting into the\n"
             "// loop.\n";
-      if (hasTA(op)) {
+      if (hasMask(op)) {
         os << "memset(" << output->id << ", 0xff, sizeof(" << output->id
            << "));\n";
       } else if (hasTU(op)) {
