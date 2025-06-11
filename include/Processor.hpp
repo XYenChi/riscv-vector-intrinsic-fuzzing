@@ -1,6 +1,16 @@
 #ifndef RIF_PROCESSOR_H
 #define RIF_PROCESSOR_H
+#include "softfloat.h"
 #include <cstdint>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+// declare the C softfloat global so C++ can write it
+extern uint_fast8_t softfloat_roundingMode;
+#ifdef __cplusplus
+}
+#endif
 
 enum VRM {
   RNU = 0, // round-to-nearest-up
@@ -10,11 +20,53 @@ enum VRM {
   INVALID_RM
 };
 
+enum FloatRM {
+    // softfloat_round_near_even   = 0,
+    // softfloat_round_minMag      = 1,
+    // softfloat_round_min         = 2,
+    // softfloat_round_max         = 3,
+    // softfloat_round_near_maxMag = 4,
+    // softfloat_round_odd         = 5
+// 000 RNE Round to Nearest, ties to Even
+// 001 RTZ  Round towards Zero
+// 010 RDN Round Down (towards -∞)
+// 011 RUP Round Up (towards +∞)
+// 100 RMM Round to Nearest, ties to Max Magnitude
+// 111 DYM
+  RNE_FRM = 0,
+  RTZ_FRM = 1,
+  RDN_FRM = 2,
+  RUP_FRM = 3,
+  RMM_FRM = 4,
+  DYN_FRM = 7,
+  INVALID_FRM
+};
+
 struct Processor {
   struct VectorUnit {
     unsigned vsew;      // sew
     VRM xrm = VRM::RNU; // rounding mode
     VRM get_vround_mode() { return xrm; }
+    VRM set_vround_mode(int mode) {
+      if (mode >= RNU && mode < INVALID_RM)
+        xrm = static_cast<VRM>(mode);
+      else
+        xrm = INVALID_RM;
+      return xrm;
+    }
+
+    FloatRM softfloat_roundingMode = FloatRM::RNE_FRM;
+    FloatRM get_fround_mode() { return static_cast<FloatRM>(softfloat_roundingMode); }
+    // Replace/implement this to also update the softfloat C global
+    FloatRM set_fround_mode(int mode) {
+      // map and validate
+      if (mode >= RNE_FRM && mode < INVALID_FRM) {
+        softfloat_roundingMode = static_cast<FloatRM>(mode);
+      } else {
+        softfloat_roundingMode = INVALID_FRM;
+      }
+      return softfloat_roundingMode;
+    }
   };
   VectorUnit VU;
 };

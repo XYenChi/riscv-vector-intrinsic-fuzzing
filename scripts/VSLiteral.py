@@ -51,11 +51,14 @@ vs_literal_nonmask_reduction_frm_body = '''
 
   auto dataA = getRawPointer(a);
   auto dataB = getRawPointer(b);
-  auto dataC = getRawPointer(c);
+  auto dataC = {};
   auto dataOut = getRawPointer(d);
 
+  auto softfloat_roundingmode = P.VU.set_fround_mode(dataC);
   auto sew = op->typeInfo->sew.to_int();
   dataOut[0] = dataB[0];
+'''
+loop_start = '''
   for (int i = 0; i < length; ++i) {
 '''
 
@@ -67,12 +70,12 @@ vs_literal_nonmask_reduction_frm_widen_body = '''
 
   auto dataA = getRawPointer(a);
   auto dataB = getRawPointer(b);
-  auto dataC = getRawPointer(c);
+  auto dataC = {};
   auto dataOut = getRawPointer(d);
 
+  auto softfloat_roundingmode = P.VU.set_fround_mode(dataC);
   auto sew = op->typeInfo->sew.to_int();
   dataOut[0] = dataB[0];
-  for (int i = 0; i < length; ++i) {
 '''
 
 
@@ -120,6 +123,23 @@ vs_ta_literal_nonmask_end = '''
 }
 '''
 
+right_curly_bracket_loop_start = '''
+}
+  for (int i = 0; i < length; ++i) {
+'''
+
+vs_ta_literal_nonmask_frm_rounding = '''
+    dataOut[i] = f{}_roundToInt(dataOut[i], softfloat_roundingMode, true);
+'''
+
+vs_ta_literal_nonmask_frm_end = '''
+  }
+  for (int i = 1; i < length; ++i) {
+    memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
+  }
+}
+'''
+
 vs_tu_literal_nonmask_end = '''
   }
   for (int i = 1; i < length; ++i) {
@@ -144,6 +164,7 @@ vs_literal_mask_body = '''
 '''
 
 vs_literal_mask_reduction_body = '''
+// scripts/VSLiteral.py vs_literal_mask_reduction_body
   assert(a->length == b->length && a->length == c->length && a->length == d->length);
 
   auto length = a->length;
@@ -156,6 +177,29 @@ vs_literal_mask_reduction_body = '''
   auto sew = op->typeInfo->sew.to_int();
 
   dataOut[0] = dataB[0];
+  for (int i = 0; i < length; ++i) {
+    if (dataM[i]) {
+'''
+
+vs_literal_mask_reduction_frm_body = '''
+// scripts/VSLiteral.py vs_literal_mask_reduction_frm_body
+  assert(a->length == b->length && a->length == c->length && a->length == e->length);
+
+  auto length = a->length;
+
+  auto dataM = getRawPointer(a);
+  auto dataA = getRawPointer(b);
+  auto dataB = getRawPointer(c);
+  auto dataC = {}; // frm
+  auto dataOut = getRawPointer(e);
+
+  auto softfloat_roundingmode = P.VU.set_fround_mode(dataC);
+  auto sew = op->typeInfo->sew.to_int();
+
+  dataOut[0] = dataB[0];
+'''
+
+mask_loop_start = '''
   for (int i = 0; i < length; ++i) {
     if (dataM[i]) {
 '''
@@ -185,13 +229,13 @@ vs_literal_mask_reduction_widen_frm_body = '''
   auto dataM = getRawPointer(a);
   auto dataA = getRawPointer(b);
   auto dataB = getRawPointer(c);
-  auto dataC = getRawPointer(d); //frm
+  auto dataC = {}; //frm
   auto dataOut = getRawPointer(e);
 
+  auto frm = dataC;
+  P.VU.set_fround_mode(frm);
   auto sew = op->typeInfo->sew.to_int();
   dataOut[0] = dataB[0];
-  for (int i = 0; i < length; ++i) {
-    if (dataM[i]) {
 '''
 
 vs_tam_literal_mask_body = '''
@@ -254,7 +298,7 @@ vs_tum_literal_mask_end = '''
 }
 '''
 
-def create_vs_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_vs_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += vs_literal_start0 + op_type + vs_literal_start1
   for i in range(input_num) :
@@ -270,11 +314,35 @@ def create_vs_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
     elif "ReductionOperation" in op_attr :
       if "WideningOperation" in op_attr :
         if "FRM" in op_attr :
-          ret += vs_literal_mask_reduction_widen_frm_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
+          if "FRM" in op_attr :
+            if "frm0" in op_attr :
+              frm = 0
+            elif "frm1" in op_attr :
+              frm = 1
+            elif "frm2" in op_attr :
+              frm = 2
+            elif "frm3" in op_attr :
+              frm = 3
+            elif "frm4" in op_attr :
+              frm = 4
+          ret += vs_literal_mask_reduction_widen_frm_body.format(frm) + mask_loop_start + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
         else:
           ret += vs_literal_mask_reduction_widen_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
       else:
-        ret += vs_literal_mask_reduction_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
+        if "FRM" in op_attr :
+          if "frm0" in op_attr :
+            frm = 0
+          elif "frm1" in op_attr :
+            frm = 1
+          elif "frm2" in op_attr :
+            frm = 2
+          elif "frm3" in op_attr :
+            frm = 3
+          elif "frm4" in op_attr :
+            frm = 4
+          ret += vs_literal_mask_reduction_frm_body.format(frm) + mask_loop_start + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
+        else:
+          ret += vs_literal_mask_reduction_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
     else :
       ret += vs_literal_mask_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
   else :
@@ -284,15 +352,25 @@ def create_vs_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
       ret += vs_ta_literal_nonmask_body + include_literal("v" + op_id + ".h") + vs_ta_literal_nonmask_end
     elif "ReductionOperation" in op_attr :
       if "FRM" in op_attr :
+        if "frm0" in op_attr :
+          frm = 0
+        elif "frm1" in op_attr :
+          frm = 1
+        elif "frm2" in op_attr :
+          frm = 2
+        elif "frm3" in op_attr :
+          frm = 3
+        elif "frm4" in op_attr :
+          frm = 4
         if "WideningOperation" in op_attr :
-          ret += vs_literal_nonmask_reduction_frm_widen_body + include_literal("v" + op_id + ".h") + vs_ta_literal_nonmask_end
+          ret += vs_literal_nonmask_reduction_frm_widen_body.format(frm) + loop_start + include_literal("v" + op_id + ".h") + vs_ta_literal_nonmask_end
         else:
-          ret += vs_literal_nonmask_reduction_frm_body + include_literal("v" + op_id + ".h") + vs_ta_literal_nonmask_end
+          ret += vs_literal_nonmask_reduction_frm_body.format(frm) + loop_start + include_literal("v" + op_id + ".h") + vs_ta_literal_nonmask_end
       else:
         if "WideningOperation" in op_attr :
           ret += vs_literal_nonmask_reduction_widen_body + include_literal("v" + op_id + ".h") + vs_ta_literal_nonmask_end
         else:
-          ret += vs_literal_nonmask_reduction_body + include_literal("v" + op_id + ".h") + vs_literal_nonmask_end
+          ret += vs_literal_nonmask_reduction_body + include_literal("v" + op_id + ".h") + vs_ta_literal_nonmask_end
     else :
       ret += vs_literal_nonmask_body + include_literal("v" + op_id + ".h") + vs_literal_nonmask_end
   return ret

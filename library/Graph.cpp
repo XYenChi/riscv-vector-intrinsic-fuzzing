@@ -74,23 +74,11 @@ static bool hasPolicyAttr(const OpDefinition &opDef) {
   return true;
 }
 
-static bool hasTAAttr(const OpDefinition &opDef) {
-  if (!HasTA)
-    return (opDef.opAttr & TailAgnostic) == 0;
-  return true;
-}
-
-static bool hasMAAttr(const OpDefinition &opDef) {
-  if (!HasMA)
-    return (opDef.opAttr & MaskAgnostic) == 0;
-  return true;
-}
-
 Graph::Graph() {
   if (isConstructedUseDefineCandidate == false) {
     getOpDefinitions();
     std::vector<std::function<bool(const OpDefinition &)>> filters = {
-        hasPolicyAttr, hasTAAttr, hasMAAttr};
+        hasPolicyAttr};
     for (const auto &opDef : opDefs) {
       bool valid = true;
       for (auto &filter : filters) {
@@ -302,6 +290,13 @@ void Graph::generateCCode(std::ostream &os, uint32_t seed) {
     os << op->getNameWithType() << "();\n";
   }
 
+  // return 1 if any there is any failure in the operator
+  os << "int ret = 1; // 1 = success\n";
+  for (auto id : ordering) {
+    auto op = operatorLUT[id];
+    os << "ret &= golden_" << op->getNameWithType() << "();\n";
+  }
+
   // verify
   for (auto id : ordering) {
     auto op = operatorLUT[id];
@@ -313,12 +308,6 @@ void Graph::generateCCode(std::ostream &os, uint32_t seed) {
        << "() ? \"pass\" : \"fail\");\n";
   }
 
-  // return 1 if any there is any failure in the operator
-  os << "int ret = 1; // 1 = success\n";
-  for (auto id : ordering) {
-    auto op = operatorLUT[id];
-    os << "ret &= golden_" << op->getNameWithType() << "();\n";
-  }
   os << "if (!ret) return 1;\n";
 
   // end of main function

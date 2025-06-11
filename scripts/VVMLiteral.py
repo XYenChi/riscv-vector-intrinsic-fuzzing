@@ -1,6 +1,7 @@
 vvm_literal_start0 = "void compute"
 vvm_literal_start1 = "Op(RIF::OperatorBase *op) {\n"
 vvm_literal_body = '''
+  // scripts/VVLiteral.py vvm_literal_body
   assert(a->length == b->length && a->length == c->length && a->length == d->length);
 
   auto length = a->length;
@@ -76,7 +77,7 @@ vvm_ta_literal_end = '''
 '''
 
 
-def create_vvm_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_vvm_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += vvm_literal_start0 + op_type + vvm_literal_start1
   for i in range(input_num) :

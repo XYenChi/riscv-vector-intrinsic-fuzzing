@@ -16,7 +16,7 @@ namespace RIF {
 
 std::string GraphVizFilename;
 std::string CCodeFilename;
-std::string InitialRootName = "AddVV32VInt32VIVI111";
+std::string InitialRootName = "AddVV32VInt32VIVI11";
 uint32_t InitialLength = 500;
 uint32_t InitialSeed = 0xdeadbeef;
 uint32_t NodesToGenerate = 5;
@@ -27,8 +27,6 @@ std::string VerificationMode = "long";
 bool VerifyTailPolicy = true;
 bool VerifyMaskPolicy = true;
 bool HasPolicy = false;
-bool HasTA = false;
-bool HasMA = false;
 static char *Progname = nullptr;
 
 /* The options we understand. */
@@ -81,12 +79,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     break;
   case 'p':
     HasPolicy = true;
-    break;
-  case 'z':
-    HasTA = true;
-    break;
-  case 'x':
-    HasMA = true;
     break;
   case 'c':
     CCodeFilename = arg;

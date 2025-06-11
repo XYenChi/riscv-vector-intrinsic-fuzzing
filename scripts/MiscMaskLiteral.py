@@ -45,7 +45,7 @@ cpop_literal_mask_end = '''
 def include_literal(filename):
     return "#include\"" + filename + "\""
 
-def create_cpop_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_cpop_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += cpop_literal_start0 + op_type + cpop_literal_start1
   for i in range(input_num) :
@@ -104,7 +104,7 @@ vfirst_literal_mask_end = '''
 }
 '''
 
-def create_vfirst_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_vfirst_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += vfirst_literal_start0 + op_type + vfirst_literal_start1
   for i in range(input_num) :
@@ -146,9 +146,9 @@ msbf_msif_msof_literal_mask_body = '''
   auto length = a->length;
 
   auto dataM = getRawPointer(a);
-  auto dataMO = getRawPointer(b);
-  auto dataA = getRawPointer(c);
-  auto dataOut = getRawPointer(d);
+
+  auto dataA = getRawPointer(b);
+  auto dataOut = getRawPointer(c);
 
   auto sew = op->typeInfo->sew;
 
@@ -172,16 +172,12 @@ msbf_msif_msof_ma_literal_mask_body = '''
 '''
 
 msbf_msif_msof_literal_mask_end = '''
-    } else {
-      dataOut[i] = dataMO[i];
     }
     ++i;
   }
   while (i < length) {
     if (dataM[i]) {
       dataOut[i] = 0;
-    } else {
-      dataOut[i] = dataMO[i];
     }
     ++i;
   }
@@ -205,7 +201,7 @@ msbf_msif_msof_ma_literal_mask_end = '''
 }
 '''
 
-def create_msbf_msif_msof_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_msbf_msif_msof_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += msbf_msif_msof_literal_start0 + op_type + msbf_msif_msof_literal_start1
   for i in range(input_num) :
@@ -217,7 +213,7 @@ def create_msbf_msif_msof_op(op_type, op_id, op_attr, output_type, input_num, in
     if "MaskAgnostic" in op_attr :
       ret += msbf_msif_msof_ma_literal_mask_body + include_literal("v" + op_id + ".h") + msbf_msif_msof_ma_literal_mask_end
     else :
-      ret += msbf_msif_msof_literal_mask_body + include_literal("v" + op_id + ".h") + msbf_msif_msof_literal_mask_end
+      ret += msbf_msif_msof_literal_mask_body + include_literal("v" + op_id + ".h") + msbf_msif_msof_ma_literal_mask_end
   else :
     ret += msbf_msif_msof_literal_nonmask_body + include_literal("v" + op_id + ".h") + msbf_msif_msof_literal_nonmask_end
   return ret
@@ -288,9 +284,9 @@ iota_literal_mask_body = '''
   auto length = a->length;
 
   auto dataM = getRawPointer(a);
-  auto dataMO = getRawPointer(b);
-  auto dataA = getRawPointer(c);
-  auto dataOut = getRawPointer(d);
+
+  auto dataA = getRawPointer(b);
+  auto dataOut = getRawPointer(c);
 
   auto sew = op->typeInfo->sew;
 
@@ -303,9 +299,9 @@ iota_tail_policy_literal_mask_body = '''
   auto length = a->length;
 
   auto dataM = getRawPointer(a);
-  auto dataMO = getRawPointer(b);
-  auto dataA = getRawPointer(c);
-  auto dataOut = getRawPointer(d);
+
+  auto dataA = getRawPointer(b);
+  auto dataOut = getRawPointer(c);
 
   auto sew = op->typeInfo->sew;
 
@@ -330,7 +326,7 @@ iota_tama_literal_mask_body = '''
 
 iota_literal_mask_end = '''
     } else {
-      dataOut[i] = dataMO[i];
+      memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
     }
   }
 }
@@ -384,7 +380,7 @@ iota_tumu_literal_mask_end = '''
 }
 '''
 
-def create_iota_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_iota_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += iota_literal_start0 + op_type + iota_literal_start1
   for i in range(input_num) :
@@ -462,8 +458,8 @@ id_literal_mask_body = '''
   auto length = a->length;
 
   auto dataM = getRawPointer(a);
-  auto dataMO = getRawPointer(b);
-  auto dataOut = getRawPointer(c);
+
+  auto dataOut = getRawPointer(b);
 
   auto sew = op->typeInfo->sew;
 
@@ -484,8 +480,8 @@ id_tama_literal_mask_body = '''
 '''
 
 id_literal_mask_end = '''
-    } else {
-      dataOut[i] = dataMO[i];
+    } else { // maskedoff element is agnostic
+      memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
     }
   }
 }
@@ -539,7 +535,7 @@ id_tumu_literal_mask_end = '''
 }
 '''
 
-def create_id_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_id_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += id_literal_start0 + op_type + id_literal_start1
   for i in range(input_num) :
