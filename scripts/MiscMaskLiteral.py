@@ -213,7 +213,7 @@ def create_msbf_msif_msof_op(op_type, op_id, op_attr, output_type, input_num, in
     if "MaskAgnostic" in op_attr :
       ret += msbf_msif_msof_ma_literal_mask_body + include_literal("v" + op_id + ".h") + msbf_msif_msof_ma_literal_mask_end
     else :
-      ret += msbf_msif_msof_literal_mask_body + include_literal("v" + op_id + ".h") + msbf_msif_msof_literal_mask_end
+      ret += msbf_msif_msof_literal_mask_body + include_literal("v" + op_id + ".h") + msbf_msif_msof_ma_literal_mask_end
   else :
     ret += msbf_msif_msof_literal_nonmask_body + include_literal("v" + op_id + ".h") + msbf_msif_msof_literal_nonmask_end
   return ret
