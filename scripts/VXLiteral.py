@@ -330,11 +330,10 @@ vx_literal_mask_destructive_body_frm = '''
 
   auto length = a->length;
 
-  auto dataM = getRawPointer(a);
-  auto dataMO = getRawPointer(b);
-  auto dataA = getRawPointer(b);
-  auto dataB = getRawPointer(c);
-  auto dataC = getRawPointer(d);
+  auto dataM = getRawPointer(a); //vm
+  auto dataA = getRawPointer(b); //vd
+  auto dataB = getRawPointer(c); //rs1
+  auto dataC = getRawPointer(d); //vs2
   auto dataD = getRawPointer(e); //frm
   auto dataOut = getRawPointer(f);
 
@@ -659,7 +658,7 @@ def create_destructive_vx_op(op_type, op_id, op_attr, output_type, input_num, in
     elif "TailUndisturbed" in op_attr and "MaskUndisturbed" in op_attr : # tumu
       ret += vx_literal_mask_destructive_body + include_literal("v" + op_id + ".h") + vx_tumu_literal_mask_destructive_end
     elif "VXRM" in op_attr or "FRM" in op_attr : # vxrm
-      ret += vx_literal_mask_destructive_body_frm + include_literal("v" + op_id + ".h") + vx_literal_mask_destructive_end
+      ret += vx_literal_mask_destructive_body_frm + include_literal("v" + op_id + ".h") + vx_tama_literal_mask_destructive_end
     else : # No explicit policy specified
       ret += vx_literal_mask_destructive_body + include_literal("v" + op_id + ".h") + vx_literal_mask_destructive_end
   else :
