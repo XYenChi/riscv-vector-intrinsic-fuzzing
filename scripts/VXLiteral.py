@@ -514,10 +514,6 @@ vx_tama_literal_mask_destructive_end = '''
   }
   #pragma pop_macro("VI_VFP_VF_LOOP")
   #pragma pop_macro("VI_VFP_VF_LOOP_WIDE")
-  for (int i = 0; i < length; ++i) {
-    if (i & 1) // tail element is agnostic
-      memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
-  }
 }
 '''
 

@@ -421,6 +421,17 @@ vv_literal_mask_destructive_end = '''
 }
 '''
 
+vv_literal_mask_destructive_frm_end = '''
+// scripts/VVLiteral.py vv_literal_mask_destructive_end
+    }else{
+      memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
+    }
+  }
+  #pragma pop_macro("VI_VFP_VV_LOOP")
+  #pragma pop_macro("VI_VFP_VV_LOOP_WIDE")
+}
+'''
+
 vv_tama_literal_mask_destructive_end = '''
     } else // maskedoff element is agnostic
       memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
@@ -656,7 +667,7 @@ def create_destructive_vv_op(op_type, op_id, op_attr, output_type, input_num, in
     elif "TailUndisturbed" in op_attr and "MaskUndisturbed" in op_attr : # tumu
       ret += vv_literal_mask_body_destructive + include_literal("v" + op_id + ".h") + vv_tumu_literal_mask_destructive_end
     elif "VXRM" in op_attr or "FRM" in op_attr: # vxrm
-      ret += vv_literal_mask_body_destructive_frm + include_literal("v" + op_id + ".h") + vv_literal_mask_destructive_end
+      ret += vv_literal_mask_body_destructive_frm + include_literal("v" + op_id + ".h") + vv_literal_mask_destructive_frm_end
     else : # No explicit policy specified
       ret += vv_literal_mask_body_destructive + include_literal("v" + op_id + ".h") + vv_literal_mask_destructive_end
   else :
