@@ -267,7 +267,6 @@ vx_literal_mask_destructive_body = '''
   auto length = a->length;
 
   auto dataM = getRawPointer(a);
-  auto dataMO = getRawPointer(b);
   auto dataA = getRawPointer(b);
   auto dataB = getRawPointer(c);
   auto dataC = getRawPointer(d);
