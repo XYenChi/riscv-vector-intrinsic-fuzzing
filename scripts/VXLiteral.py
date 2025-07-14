@@ -110,7 +110,8 @@ vx_literal_nonmask_destructive_body_frm = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand rs1(*dataB);                                            \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
-  softfloat_roundingMode = dataD;                                              \\
+  RIF::RawDatumOperand frm(*dataD);                                            \\
+  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -133,6 +134,8 @@ vx_literal_nonmask_destructive_body_frm = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand rs1(*dataB);                                            \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
+  RIF::RawDatumOperand frm(*dataD);                                            \\
+  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     vs2 = f16_to_f32(vs2);                                                     \\
@@ -345,7 +348,8 @@ vx_literal_mask_destructive_body_frm = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand rs1(*dataB);                                            \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
-  softfloat_roundingMode = dataD;                                              \\
+  RIF::RawDatumOperand frm(*dataD);                                            \\
+  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
