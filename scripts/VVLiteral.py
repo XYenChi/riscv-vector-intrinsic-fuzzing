@@ -163,6 +163,11 @@ vv_literal_nonmask_end = '''
 }
 '''
 
+vv_literal_nonmask_frm_end = '''
+  }
+}
+'''
+
 vv_ta_literal_nonmask_end = '''
   }
   for (int i = 0; i < length; ++i) {
@@ -219,12 +224,95 @@ vv_literal_nonmask_vxrm_body = '''
 
   auto dataA = getRawPointer(a);
   auto dataB = getRawPointer(b);
+  auto dataC = getRawPointer(c);// c means vxrm
+  auto dataOut = getRawPointer(d);
+  auto xrm = *dataC;
+  
+  auto sew = op->typeInfo->sew.to_int();
+  auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
+  P.VU.vsew = sew;
+
+  for (int i = 0; i < length; ++i) {
+'''
+
+vv_literal_nonmask_frm_body = '''
+// scripts/VVLiteral.py vv_literal_nonmask_frm_body
+  assert(a->length == b->length && a->length == d->length);
+
+  auto length = a->length;
+
+  auto dataA = getRawPointer(a); // vs2
+  auto dataB = getRawPointer(b); // vs1
   auto dataC = getRawPointer(c);// c means frm
   auto dataOut = getRawPointer(d);
 
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
+
+  #pragma push_macro("VI_VFP_VV_LOOP")
+  #undef VI_VFP_VV_LOOP
+  #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
+  RIF::RawDatumOperand vs2(dataA[i]);                                          \\
+  RIF::RawDatumOperand vs1(dataB[i]);                                          \\
+  RIF::RawDatumOperand frm(*dataC);                                            \\
+  softfloat_roundingMode = frm;                                                \\
+  switch (sew) {                                                               \\
+  case e16:                                                                    \\
+    BODY16;                                                                    \\
+    break;                                                                     \\
+  case e32:                                                                    \\
+    BODY32;                                                                    \\
+    break;                                                                     \\
+  case e64:                                                                    \\
+    BODY64;                                                                    \\
+    break;                                                                     \\
+  default:                                                                     \\
+    assert(0);                                                                 \\
+    break;                                                                     \\
+  }                                                                            \\
+  // dataOut[i] = vd;
+
+  for (int i = 0; i < length; ++i) {
+'''
+
+vv_literal_masked_no_maskedoff_frm_body = '''
+// scripts/VVLiteral.py vv_literal_masked_no_maskedoff_frm_body
+  assert(a->length == b->length && a->length == d->length);
+
+  auto length = a->length;
+
+  auto dataA = getRawPointer(a); // vs2
+  auto dataB = getRawPointer(b); // vs1
+  auto dataC = getRawPointer(c);// c means frm
+  auto dataOut = getRawPointer(d);
+
+  auto sew = op->typeInfo->sew.to_int();
+  auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
+  P.VU.vsew = sew;
+
+  #pragma push_macro("VI_VFP_VV_LOOP")
+  #undef VI_VFP_VV_LOOP
+  #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
+  RIF::RawDatumOperand vs2(dataA[i]);                                          \\
+  RIF::RawDatumOperand vs1(dataB[i]);                                          \\
+  RIF::RawDatumOperand frm(*dataC);                                            \\
+  softfloat_roundingMode = frm;                                                \\
+  switch (sew) {                                                               \\
+  case e16:                                                                    \\
+    BODY16;                                                                    \\
+    break;                                                                     \\
+  case e32:                                                                    \\
+    BODY32;                                                                    \\
+    break;                                                                     \\
+  case e64:                                                                    \\
+    BODY64;                                                                    \\
+    break;                                                                     \\
+  default:                                                                     \\
+    assert(0);                                                                 \\
+    break;                                                                     \\
+  }                                                                            \\
+  dataOut[i] = vd;
 
   for (int i = 0; i < length; ++i) {
 '''
@@ -329,6 +417,8 @@ vv_literal_mask_body_destructive_frm = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
+  RIF::RawDatumOperand frm(*dataD);                                             \\
+  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -351,6 +441,8 @@ vv_literal_mask_body_destructive_frm = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
+  RIF::RawDatumOperand frm(*dataD);                                            \\
+  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     vs2 = f16_to_f32(vs2);                                                     \\
@@ -379,6 +471,13 @@ vv_literal_mask_end = '''
     }
   }
 }
+'''
+
+vv_literal_mask_frm_end = '''
+    }else {
+      memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
+    }
+  }
 '''
 
 vv_literal_mask_bool_end= '''
@@ -625,8 +724,10 @@ def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
   if "MaskedOperation" in op_attr :
     if "TailAgnostic" in op_attr and "MaskAgnostic" in op_attr : # tama
       ret += vv_literal_masked_no_maskedoff_body + include_literal("v" + op_id + ".h") + vv_tama_literal_mask_end
-    elif "VXRM" in op_attr or "FRM" in op_attr: # vxrm
+    elif "VXRM" in op_attr :
       ret += vv_literal_masked_no_maskedoff_vxrm_body + include_literal("v" + op_id + ".h") + vv_literal_mask_end
+    elif "FRM" in op_attr: # frm
+      ret += vv_literal_masked_no_maskedoff_frm_body + include_literal("v" + op_id + ".h") + vv_literal_mask_frm_end
     elif "TailAgnostic" in op_attr and "MaskUndisturbed" in op_attr : # tamu
       ret += vv_literal_mask_body + include_literal("v" + op_id + ".h") + vv_tamu_literal_mask_end
     elif "TailUndisturbed" in op_attr and "MaskAgnostic" in op_attr : # tuma
@@ -643,8 +744,10 @@ def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
         ret += vv_tu_literal_nonmask_body + include_literal("v" + op_id + ".h") + vv_tu_literal_nonmask_end
     elif "TailAgnostic" in op_attr :
         ret += vv_literal_nonmask_body + include_literal("v" + op_id + ".h") + vv_ta_literal_nonmask_end
-    elif "VXRM" in op_attr or "FRM" in op_attr:
+    elif "VXRM" in op_attr :
         ret += vv_literal_nonmask_vxrm_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
+    elif "FRM" in op_attr:
+        ret += vv_literal_nonmask_frm_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
     else :
       ret += vv_literal_nonmask_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
   return ret
