@@ -227,7 +227,7 @@ vv_literal_nonmask_vxrm_body = '''
   auto dataC = getRawPointer(c);// c means vxrm
   auto dataOut = getRawPointer(d);
   auto xrm = *dataC;
-  
+
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
@@ -256,6 +256,7 @@ vv_literal_nonmask_frm_body = '''
   RIF::RawDatumOperand vs2(dataA[i]);                                          \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand frm(*dataC);                                            \\
+  RIF::RawDatumOperand vd(dataOut[i]);                                         \\
   softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
@@ -271,7 +272,7 @@ vv_literal_nonmask_frm_body = '''
     assert(0);                                                                 \\
     break;                                                                     \\
   }                                                                            \\
-  // dataOut[i] = vd;
+  dataOut[i] = vd;
 
   for (int i = 0; i < length; ++i) {
 '''
@@ -282,10 +283,11 @@ vv_literal_masked_no_maskedoff_frm_body = '''
 
   auto length = a->length;
 
-  auto dataA = getRawPointer(a); // vs2
-  auto dataB = getRawPointer(b); // vs1
-  auto dataC = getRawPointer(c);// c means frm
-  auto dataOut = getRawPointer(d);
+  auto dataM = getRawPointer(a); // mask
+  auto dataA = getRawPointer(b); // vs2
+  auto dataB = getRawPointer(c); // vs1
+  auto dataC = getRawPointer(d);// c means frm
+  auto dataOut = getRawPointer(e);
 
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
@@ -296,6 +298,7 @@ vv_literal_masked_no_maskedoff_frm_body = '''
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
   RIF::RawDatumOperand vs2(dataA[i]);                                          \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
+  RIF::RawDatumOperand vd(dataOut[i]);                                         \\
   RIF::RawDatumOperand frm(*dataC);                                            \\
   softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
@@ -315,6 +318,51 @@ vv_literal_masked_no_maskedoff_frm_body = '''
   dataOut[i] = vd;
 
   for (int i = 0; i < length; ++i) {
+    if (dataM[i]) {
+'''
+
+vv_literal_masked_no_maskedoff_frm_widen_body = '''
+// scripts/VVLiteral.py vv_literal_masked_no_maskedoff_frm_widen_body
+  assert(a->length == b->length && a->length == d->length);
+
+  auto length = a->length;
+
+  auto dataM = getRawPointer(a); // mask
+  auto dataA = getRawPointer(b); // vs2
+  auto dataB = getRawPointer(c); // vs1
+  auto dataC = getRawPointer(d);// c means frm
+  auto dataOut = getRawPointer(e);
+
+  auto sew = op->typeInfo->sew.to_int();
+  auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
+  P.VU.vsew = sew;
+
+  #pragma push_macro("VI_VFP_VV_LOOP")
+  #undef VI_VFP_VV_LOOP
+  #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
+  RIF::RawDatumOperand vs2(dataA[i]);                                          \\
+  RIF::RawDatumOperand vs1(dataB[i]);                                          \\
+  RIF::RawDatumOperand frm(*dataC);                                            \\
+  RIF::RawDatumOperand vd(dataOut[i]);                                         \\
+  softfloat_roundingMode = frm;                                                \\
+  switch (sew) {                                                               \\
+  case e16:                                                                    \\
+    BODY16;                                                                    \\
+    break;                                                                     \\
+  case e32:                                                                    \\
+    BODY32;                                                                    \\
+    break;                                                                     \\
+  case e64:                                                                    \\
+    BODY64;                                                                    \\
+    break;                                                                     \\
+  default:                                                                     \\
+    assert(0);                                                                 \\
+    break;                                                                     \\
+  }                                                                            \\
+  dataOut[i] = vd;
+
+  for (int i = 0; i < length; ++i) {
+    if (dataM[i]) {
 '''
 
 vv_literal_mask_body = '''
@@ -591,6 +639,7 @@ vv_literal_masked_no_maskedoff_vxrm_body = '''
   auto dataB = getRawPointer(c);
   auto dataC = getRawPointer(d); // dataC is vxrm
   auto dataOut = getRawPointer(e);
+  auto xrm = *dataC;
 
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = b->typeInfo->sew.to_int(); // for index load / store only
@@ -726,8 +775,10 @@ def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
       ret += vv_literal_masked_no_maskedoff_body + include_literal("v" + op_id + ".h") + vv_tama_literal_mask_end
     elif "VXRM" in op_attr :
       ret += vv_literal_masked_no_maskedoff_vxrm_body + include_literal("v" + op_id + ".h") + vv_literal_mask_end
-    elif "FRM" in op_attr: # frm
+    elif "FRM" in op_attr and "WideningOperation" not in op_attr: # frm
       ret += vv_literal_masked_no_maskedoff_frm_body + include_literal("v" + op_id + ".h") + vv_literal_mask_frm_end
+    elif "FRM" in op_attr and "WideningOperation" in op_attr: # frm
+      ret += vv_literal_masked_no_maskedoff_frm_widen_body + include_literal("v" + op_id + ".h") + vv_literal_mask_end
     elif "TailAgnostic" in op_attr and "MaskUndisturbed" in op_attr : # tamu
       ret += vv_literal_mask_body + include_literal("v" + op_id + ".h") + vv_tamu_literal_mask_end
     elif "TailUndisturbed" in op_attr and "MaskAgnostic" in op_attr : # tuma
