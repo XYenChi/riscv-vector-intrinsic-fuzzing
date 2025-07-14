@@ -350,7 +350,7 @@ typedef unsigned __int128 uint128_t;
 #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                                 \
   RIF::RawDatumOperand vs2(dataA[i]);                                          \
   RIF::RawDatumOperand vs1(dataB[i]);                                          \
-  RIF::RawDatumOperand vd;                                                     \
+  RIF::RawDatumOperand vd(dataOut[i]);                                         \
   switch (sew) {                                                               \
   case e16:                                                                    \
     BODY16;                                                                    \
@@ -365,7 +365,6 @@ typedef unsigned __int128 uint128_t;
     assert(0);                                                                 \
     break;                                                                     \
   }                                                                            \
-  dataOut[i] = vd;
 
 /*=================================*/
 /*    Floating Point related       */
