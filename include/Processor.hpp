@@ -15,6 +15,12 @@ struct Processor {
     unsigned vsew;      // sew
     VRM xrm = VRM::RNU; // rounding mode
     VRM get_vround_mode() { return xrm; }
+    void set_vround_mode(int mode) {
+      if (mode >= RNU && mode < INVALID_RM)
+        xrm = static_cast<VRM>(mode);
+      else
+        xrm = INVALID_RM;
+    }
   };
   VectorUnit VU;
 };

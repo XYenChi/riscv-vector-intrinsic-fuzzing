@@ -24,6 +24,7 @@ v_literal_nonmask_frm_body = '''
   auto dataB = getRawPointer(b); // frm
   auto dataOut = getRawPointer(c);
 
+  softfloat_roundingMode = *dataB / 5;
   auto sew = op->typeInfo->sew.to_int();
 
   for (int i = 0; i < length; ++i) {
@@ -52,7 +53,8 @@ v_literal_nonmask_narrow_frm_body = '''
   auto dataA = getRawPointer(a);
   auto dataB = getRawPointer(b); // frm
   auto dataOut = getRawPointer(c);
-
+  
+  softfloat_roundingMode = *dataB / 5;
   auto sew = getVs2(op)->typeInfo->sew.to_int();
 
   for (int i = 0; i < length; ++i) {

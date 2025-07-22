@@ -238,6 +238,8 @@ vx_literal_mask_vxrm_body = '''
   auto dataC = getRawPointer(d);  // d means vxrm
   auto dataOut = getRawPointer(e);
 
+  auto vxrm = *dataC/4;
+  P.VU.set_vround_mode(vxrm);
   auto sew = op->typeInfo->sew.to_int();
   P.VU.vsew = sew;
 
@@ -247,9 +249,9 @@ vx_literal_mask_vxrm_body = '''
 
 
 vx_literal_nonmask_vxrm_body = '''
-  // script/VXLiteral.py vx_literal_nonmask_vxrm_body\n
+  // script/VXLiteral.py vx_literal_nonmask_vxrm_body
   // vasub_vx
-  assert(a->length == d->length == 1 && b->length == 1);
+  assert(a->length == d->length && b->length == 1);
 
   auto length = a->length;
 
@@ -258,6 +260,8 @@ vx_literal_nonmask_vxrm_body = '''
   auto dataC = getRawPointer(c);  // c means vxrm
   auto dataOut = getRawPointer(d);
 
+  auto vxrm = *dataC/4;
+  P.VU.set_vround_mode(vxrm);
   auto sew = op->typeInfo->sew.to_int();
   P.VU.vsew = sew;
 
@@ -268,6 +272,7 @@ vx_literal_mask_destructive_body = '''
   assert(a->length == b->length && a->length == d->length &&
           a->length == e->length && c->length == 1);
 
+  // script/VXLiteral.py vx_literal_mask_destructive_body
   auto length = a->length;
 
   auto dataM = getRawPointer(a);

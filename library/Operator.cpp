@@ -24,7 +24,7 @@ namespace RIF {
 int placeholderIndex;
 
 static std::string getNewPlaceholderName() {
-  return "\tplaceholder" + std::to_string(placeholderIndex++);
+  return "placeholder" + std::to_string(placeholderIndex++);
 }
 
 static std::string getUniqueName(std::string name) {

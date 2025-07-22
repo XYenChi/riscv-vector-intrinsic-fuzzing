@@ -113,6 +113,7 @@ vv_literal_nonmask_destructive_frm_body = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
+  RIF::RawDatumOperand frm(*dataD / 5);                                        \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -135,6 +136,7 @@ vv_literal_nonmask_destructive_frm_body = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
+  RIF::RawDatumOperand frm(*dataD / 5);                                        \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     vs2 = f16_to_f32(vs2);                                                     \\
@@ -226,11 +228,12 @@ vv_literal_nonmask_vxrm_body = '''
   auto dataB = getRawPointer(b);
   auto dataC = getRawPointer(c);// c means vxrm
   auto dataOut = getRawPointer(d);
-  auto xrm = *dataC;
 
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
+  auto vxrm = *dataC/4;
+  P.VU.set_vround_mode(vxrm);
 
   for (int i = 0; i < length; ++i) {
 '''
@@ -255,7 +258,7 @@ vv_literal_nonmask_frm_body = '''
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
   RIF::RawDatumOperand vs2(dataA[i]);                                          \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataC);                                            \\
+  RIF::RawDatumOperand frm(*dataC / 5);                                        \\
   RIF::RawDatumOperand vd(dataOut[i]);                                         \\
   softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
@@ -299,7 +302,7 @@ vv_literal_masked_no_maskedoff_frm_body = '''
   RIF::RawDatumOperand vs2(dataA[i]);                                          \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vd(dataOut[i]);                                         \\
-  RIF::RawDatumOperand frm(*dataC);                                            \\
+  RIF::RawDatumOperand frm(*dataC / 5);                                        \\
   softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
@@ -330,7 +333,7 @@ vv_literal_masked_no_maskedoff_frm_widen_body = '''
   auto dataM = getRawPointer(a); // mask
   auto dataA = getRawPointer(b); // vs2
   auto dataB = getRawPointer(c); // vs1
-  auto dataC = getRawPointer(d);// c means frm
+  auto dataC = getRawPointer(d); // c means frm
   auto dataOut = getRawPointer(e);
 
   auto sew = op->typeInfo->sew.to_int();
@@ -342,7 +345,7 @@ vv_literal_masked_no_maskedoff_frm_widen_body = '''
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
   RIF::RawDatumOperand vs2(dataA[i]);                                          \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataC);                                            \\
+  RIF::RawDatumOperand frm(*dataC / 5);                                        \\
   RIF::RawDatumOperand vd(dataOut[i]);                                         \\
   softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
@@ -465,7 +468,7 @@ vv_literal_mask_body_destructive_frm = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataD);                                             \\
+  RIF::RawDatumOperand frm(*dataD / 5);                                        \\
   softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
@@ -489,7 +492,7 @@ vv_literal_mask_body_destructive_frm = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataD);                                            \\
+  RIF::RawDatumOperand frm(*dataD / 5);                                        \\
   softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
@@ -526,6 +529,7 @@ vv_literal_mask_frm_end = '''
       memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
     }
   }
+}
 '''
 
 vv_literal_mask_bool_end= '''
@@ -639,8 +643,9 @@ vv_literal_masked_no_maskedoff_vxrm_body = '''
   auto dataB = getRawPointer(c);
   auto dataC = getRawPointer(d); // dataC is vxrm
   auto dataOut = getRawPointer(e);
-  auto xrm = *dataC;
 
+  auto vxrm = *dataC/4;
+  P.VU.set_vround_mode(vxrm);
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = b->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
