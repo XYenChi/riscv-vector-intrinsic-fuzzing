@@ -7,7 +7,7 @@ set_property(GLOBAL PROPERTY CXX_STANDARD 17)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -save-temps=obj")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -save-temps=obj -fsanitize=address ")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 set(INC ${CMAKE_CURRENT_LIST_DIR}/include)
@@ -26,8 +26,8 @@ add_custom_target(clean_headers
 )
 
 add_custom_target(generate_headers ALL
- COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/GenerateOperatorComputeHeaders.py ${CMAKE_CURRENT_SOURCE_DIR}
  DEPENDS clean_headers
+ COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/scripts/GenerateOperatorComputeHeaders.py ${CMAKE_CURRENT_SOURCE_DIR}
  COMMENT "Generate header files with golden compute functions for operators"
 )
 
