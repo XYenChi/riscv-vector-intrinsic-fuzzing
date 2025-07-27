@@ -938,7 +938,7 @@ struct CodeGenForVmsbfVmsifVmsof : CodeGenForOperator {
   void updateFirst(const std::string &first, std::vector<std::string> &args) {
     int booleanSew = getBooleanSew(vlTypeInfo);
     auto vecVs2 =
-        hasMask(op) ? op->opAttr & NoMaskedOff ? args[1] : args[2] : args[0];
+        hasMask(op) ? args[1] : args[0];
     if (hasMask(op)) {
       auto vecM = args[0];
       os << first << " = __riscv_vfirst_m_b" << booleanSew << "_m(" << vecM
