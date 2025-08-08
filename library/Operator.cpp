@@ -384,16 +384,34 @@ static void genIntrinsicFuncSuffix(std::ostream &os, OperatorBase *op,
     }
   }
 
-  for (auto arg : args)
-    os << arg << ", ";
-
-  if (opAttr & OperatorAttr::HaveVLParameter) {
-    os << "vl);\n";
-  } else if (opAttr & OperatorAttr::NoVLParameter)
-    os << ");\n";
-  else {
-    std::cerr << "VL attribute for operator is not set correctly.\n";
-    exit(1);
+  if (op->opAttr & VXRM || op->opAttr & FRM) {
+    for (int i = 0; i < args.size() - 1; ++i) {
+      os << args[i] << ", ";
+    }
+    if (op->opAttr & vxrm0 || op->opAttr & frm0) {
+      os << "0, vl);\n";
+    } else if (op->opAttr & vxrm1 || op->opAttr & frm1) {
+      os << "1, vl);\n";
+    } else if (op->opAttr & vxrm2 || op->opAttr & frm2) {
+      os << "2, vl);\n";
+    } else if (op->opAttr & vxrm3 || op->opAttr & frm3) {
+      os << "3, vl);\n";
+    } else if (op->opAttr & frm4) {
+      os << "4, vl);\n";
+    } else {
+      os << "vl);\n";
+    }
+  } else {
+    for (auto arg : args)
+      os << arg << ", ";
+    if (opAttr & OperatorAttr::HaveVLParameter) {
+      os << "vl);\n";
+    } else if (opAttr & OperatorAttr::NoVLParameter) {
+      os << ");\n";
+    } else {
+      std::cerr << "VL attribute for operator is not set correctly.\n";
+      exit(1);
+    }
   }
 }
 
@@ -631,33 +649,6 @@ void CodeGenForOperator::generateSingleOperatorCode() {
   auto output = op->outputs[0];
   getRawPointers(op->inputs, output);
   os << "\n";
-  if (op->opAttr & VXRM){
-    os << "#if " << op->inputs[opInputs.size()-1]->id << "/4 == 0\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 0\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/4 == 1\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 1\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/4 == 2\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 2\n";
-          os << "#elif " << op->inputs[opInputs.size()-1]->id << "/4 == 3\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 3\n";
-    os << "#else\n";
-    os << "\t" << "#error \"VXRM VALUE should be [0:3]\"\n";
-    os << "#endif\n";
-  }else if (op->opAttr & FRM){
-    os << "#if " << op->inputs[opInputs.size()-1]->id << "/5 == 0\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 0\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/5 == 1\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 1\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/5 == 2\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 2\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/5 == 3\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 3\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/5 == 4\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 4\n";
-    os << "#else\n";
-    os << "\t" << "#error \"FRM VALUE should be [0:4]\"\n";
-    os << "#endif\n";
-    }
 
   std::string counter = CodeGenForOperator::getCounter(os, loopLength);
   CodeGenForOperator::getLoopStart(os, counter);
@@ -727,7 +718,7 @@ struct CodeGenForReductionOperator : CodeGenForOperator {
       loadOneDToVector(os, opInputs[1].second, opInputs[1].first, op);
     }
 
-    if (!hasTU(op) || !hasTUMA(op) || !hasTUMU(op)) {
+    if (!hasTU(op) || !hasTUM(op) || !hasTUMU(op)) {
       os << "// This function initializes the output elements according to\n"
             "// its\n"
             "// tail policy and\n"
@@ -970,10 +961,18 @@ struct CodeGenForViota : CodeGenForOperator {
     os << opResult << ", "
        << "/* find what is accumulateMask:*/" << accumulateMask;
 
-    if (haveTailPolicy(op)) {
-      os << ", tail_vl);\n";
+    if (op->opAttr & vxrm0 || op->opAttr & frm0) {
+      os << ", 0, vl); \n";
+    } else if (op->opAttr & vxrm1 || op->opAttr & frm1) {
+      os << ", 1, vl); \n";
+    } else if (op->opAttr & vxrm2 || op->opAttr & frm2) {
+      os << ", 2, vl); \n";
+    } else if (op->opAttr & vxrm3 || op->opAttr & frm3) {
+      os << ", 3, vl); \n";
+    } else if (op->opAttr & frm4) {
+      os << ", 4, vl); \n";
     } else {
-      os << ", vl);\n";
+      os << ", vl); \n";
     }
     storeVectorToOneD(os, opOutput.first, opResult, opOutput.second);
   }
