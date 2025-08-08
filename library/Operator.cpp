@@ -894,9 +894,6 @@ struct CodeGenForVmsbfVmsifVmsof : CodeGenForOperator {
     os << "vbool" << booleanSew << "_t " << vecStored << " = ";
     if (hasMask(op)) {
       os << "__riscv_vmnot_m_b" << booleanSew << "(" << vecM << ", vl);\n";
-    } else {
-      os << "__riscv_vmandn_mm_b" << booleanSew << "(" << vecMO << ", " << vecM
-         << ", vl);\n";
     }
     return vecStored;
   }
