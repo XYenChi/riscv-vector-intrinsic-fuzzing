@@ -167,6 +167,7 @@ vv_literal_nonmask_end = '''
 
 vv_literal_nonmask_frm_end = '''
   }
+  #pragma push_macro("VI_VFP_VV_LOOP")
 }
 '''
 
@@ -190,8 +191,8 @@ vv_tu_literal_nonmask_end = '''
 
 vv_literal_nonmask_destructive_end = '''
   }
-  #pragma pop_macro("VI_VFP_VV_LOOP")
-  #pragma pop_macro("VI_VFP_VV_LOOP_WIDE")
+  # pragma pop_macro("VI_VFP_VV_LOOP")
+  # pragma pop_macro("VI_VFP_VV_LOOP_WIDE")
 }
 '''
 
@@ -226,16 +227,18 @@ vv_literal_nonmask_vxrm_body = '''
 
   auto dataA = getRawPointer(a);
   auto dataB = getRawPointer(b);
-  auto dataC = getRawPointer(c);// c means vxrm
+  auto dataC = {}; // c means vxrm
   auto dataOut = getRawPointer(d);
 
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
-  auto vxrm = *dataC/4;
+  auto vxrm = dataC/4;
   P.VU.set_vround_mode(vxrm);
+'''
 
-  for (int i = 0; i < length; ++i) {
+loop_start = '''
+for (int i = 0; i < length; ++i) {
 '''
 
 vv_literal_nonmask_frm_body = '''
@@ -457,7 +460,7 @@ vv_literal_mask_body_destructive_frm = '''
   auto dataA = getRawPointer(b);
   auto dataB = getRawPointer(c);
   auto dataC = getRawPointer(d);
-  auto dataD = getRawPointer(e); // frm
+  auto dataD = {frm} // frm
   auto dataOut = getRawPointer(f);
 
   auto sew = op->typeInfo->sew.to_int();
@@ -529,6 +532,17 @@ vv_literal_mask_frm_end = '''
       memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
     }
   }
+  #pragma pop_macro("VI_VFP_VV_LOOP")
+  #pragma pop_macro("VI_VFP_VV_LOOP_WIDE")
+}
+'''
+
+vv_literal_mask_frm_widen_end = '''
+    }else {
+      memset(&dataOut[i], 0xff, sizeof(dataOut[i]));
+    }
+  }
+  #pragma pop_macro("VI_VFP_VV_LOOP")
 }
 '''
 
@@ -641,15 +655,17 @@ vv_literal_masked_no_maskedoff_vxrm_body = '''
   auto dataM = getRawPointer(a);
   auto dataA = getRawPointer(b);
   auto dataB = getRawPointer(c);
-  auto dataC = getRawPointer(d); // dataC is vxrm
+  auto dataC = {}; // dataC is vxrm
   auto dataOut = getRawPointer(e);
 
-  auto vxrm = *dataC/4;
+  auto vxrm = dataC/4;
   P.VU.set_vround_mode(vxrm);
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = b->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
+'''
 
+mask_loop_start = '''
   for (int i = 0; i < length; ++i) {
     if (dataM[i]) {
 '''
@@ -779,11 +795,12 @@ def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
     if "TailAgnostic" in op_attr and "MaskAgnostic" in op_attr : # tama
       ret += vv_literal_masked_no_maskedoff_body + include_literal("v" + op_id + ".h") + vv_tama_literal_mask_end
     elif "VXRM" in op_attr :
-      ret += vv_literal_masked_no_maskedoff_vxrm_body + include_literal("v" + op_id + ".h") + vv_literal_mask_end
+      vxrm = 0
+      ret += vv_literal_masked_no_maskedoff_vxrm_body.format(vxrm) + mask_loop_start + include_literal("v" + op_id + ".h") + vv_literal_mask_end
     elif "FRM" in op_attr and "WideningOperation" not in op_attr: # frm
       ret += vv_literal_masked_no_maskedoff_frm_body + include_literal("v" + op_id + ".h") + vv_literal_mask_frm_end
     elif "FRM" in op_attr and "WideningOperation" in op_attr: # frm
-      ret += vv_literal_masked_no_maskedoff_frm_widen_body + include_literal("v" + op_id + ".h") + vv_literal_mask_end
+      ret += vv_literal_masked_no_maskedoff_frm_widen_body + include_literal("v" + op_id + ".h") + vv_literal_mask_frm_widen_end
     elif "TailAgnostic" in op_attr and "MaskUndisturbed" in op_attr : # tamu
       ret += vv_literal_mask_body + include_literal("v" + op_id + ".h") + vv_tamu_literal_mask_end
     elif "TailUndisturbed" in op_attr and "MaskAgnostic" in op_attr : # tuma
@@ -801,9 +818,10 @@ def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
     elif "TailAgnostic" in op_attr :
         ret += vv_literal_nonmask_body + include_literal("v" + op_id + ".h") + vv_ta_literal_nonmask_end
     elif "VXRM" in op_attr :
-        ret += vv_literal_nonmask_vxrm_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
+        vxrm = 0
+        ret += vv_literal_nonmask_vxrm_body.format(vxrm) + loop_start + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
     elif "FRM" in op_attr:
-        ret += vv_literal_nonmask_frm_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
+        ret += vv_literal_nonmask_frm_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_frm_end
     else :
       ret += vv_literal_nonmask_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
   return ret
@@ -826,6 +844,7 @@ def create_destructive_vv_op(op_type, op_id, op_attr, output_type, input_num, in
     elif "TailUndisturbed" in op_attr and "MaskUndisturbed" in op_attr : # tumu
       ret += vv_literal_mask_body_destructive + include_literal("v" + op_id + ".h") + vv_tumu_literal_mask_destructive_end
     elif "VXRM" in op_attr or "FRM" in op_attr: # vxrm
+      vxrm = 0
       ret += vv_literal_mask_body_destructive_frm + include_literal("v" + op_id + ".h") + vv_literal_mask_destructive_frm_end
     else : # No explicit policy specified
       ret += vv_literal_mask_body_destructive + include_literal("v" + op_id + ".h") + vv_literal_mask_destructive_end
@@ -840,7 +859,7 @@ def create_destructive_vv_op(op_type, op_id, op_attr, output_type, input_num, in
       ret += vv_literal_nonmask_destructive_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_destructive_end
   return ret
 
-def create_masked_no_maskedoff_vv_op(op_type, op_id, op_attr, output_type, input_num, input_types) :
+def create_masked_no_maskedoff_vv_op(op_type, op_id, op_attr, output_type, input_nfield, output_nfield, input_num, input_types) :
   ret = ""
   ret += vv_literal_start0 + op_type + vv_literal_start1
   for i in range(input_num) :

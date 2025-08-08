@@ -105,7 +105,7 @@ bool hasTU(const OperatorBase *op) { return op->opAttr & TailUndisturbed; }
 
 bool hasMU(const OperatorBase *op) { return op->opAttr & MaskUndisturbed; }
 
-bool hasTUM(const OperatorBase *op) { return hasTU(op); }
+bool hasTUM(const OperatorBase *op) { return hasTUM(op); }
 
 bool hasTUMU(const OperatorBase *op) { return hasTU(op) && hasMU(op); }
 

@@ -99,7 +99,7 @@ vx_literal_nonmask_destructive_body_frm = '''
   auto dataA = getRawPointer(a);
   auto dataB = getRawPointer(b);
   auto dataC = getRawPointer(c);
-  auto dataD = getRawPointer(d); //frm
+  auto dataD = {}; //frm
   auto dataOut = getRawPointer(e);
 
   auto sew = op->typeInfo->sew.to_int();
@@ -153,7 +153,6 @@ vx_literal_nonmask_destructive_body_frm = '''
   }                                                                            \\
   dataOut[i] = vd;
 
-  for (int i = 0; i < length; ++i) {
 '''
 
 vx_literal_nonmask_end = '''
@@ -235,14 +234,16 @@ vx_literal_mask_vxrm_body = '''
   auto dataM = getRawPointer(a);  // mask
   auto dataA = getRawPointer(b);  // vs2
   auto dataB = getRawPointer(c);  //rs1
-  auto dataC = getRawPointer(d);  // d means vxrm
+  auto dataC = {};  // d means vxrm
   auto dataOut = getRawPointer(e);
 
-  auto vxrm = *dataC/4;
+  auto vxrm = dataC/4;
   P.VU.set_vround_mode(vxrm);
   auto sew = op->typeInfo->sew.to_int();
   P.VU.vsew = sew;
+'''
 
+mask_loop_start = '''
   for (int i = 0; i < length; ++i) {
     if (dataM[i]) {
 '''
@@ -257,14 +258,16 @@ vx_literal_nonmask_vxrm_body = '''
 
   auto dataA = getRawPointer(a);
   auto dataB = getRawPointer(b);
-  auto dataC = getRawPointer(c);  // c means vxrm
+  auto dataC = {};  // c means vxrm
   auto dataOut = getRawPointer(d);
 
-  auto vxrm = *dataC/4;
+  auto vxrm = dataC/4;
   P.VU.set_vround_mode(vxrm);
   auto sew = op->typeInfo->sew.to_int();
   P.VU.vsew = sew;
+'''
 
+loop_start = '''
   for (int i = 0; i < length; ++i) {
 '''
 
@@ -623,7 +626,8 @@ def create_vx_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
     if "TailAgnostic" in op_attr and "MaskAgnostic" in op_attr : # tama
       ret += vx_literal_masked_no_maskedoff_body + include_literal("v" + op_id + ".h") + vx_tama_literal_mask_end
     elif "VXRM" in op_attr or "FRM" in op_attr : # vxrm
-      ret += vx_literal_mask_vxrm_body + "\t" +include_literal("v" + op_id + ".h") + vx_literal_mask_end
+      vxrm = 0
+      ret += vx_literal_mask_vxrm_body.format(vxrm) + mask_loop_start +include_literal("v" + op_id + ".h") + vx_literal_mask_end
     elif "TailAgnostic" in op_attr and "MaskUndisturbed" in op_attr : # tamu
       ret += vx_literal_mask_body + include_literal("v" + op_id + ".h") + vx_tamu_literal_mask_end
     elif "TailUndisturbed" in op_attr and "MaskAgnostic" in op_attr : # tuma
@@ -638,8 +642,26 @@ def create_vx_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
   else :
     if "TailUndisturbed" in op_attr :
       ret += vx_tu_literal_nonmask_body + include_literal("v" + op_id + ".h") + vx_tu_literal_nonmask_end
-    elif "VXRM" in op_attr or "FRM" in op_attr:
-      ret += vx_literal_nonmask_vxrm_body + "\t" +include_literal("v" + op_id + ".h") + vx_literal_nonmask_end
+    elif "VXRM" in op_attr:
+      if "vxrm0" in op_attr :
+        vxrm = 0
+      elif "vxrm1" in op_attr :
+        vxrm = 1
+      elif "vxrm2" in op_attr :
+        vxrm = 2
+      elif "vxrm3" in op_attr :
+        vxrm = 3
+      ret += vx_literal_nonmask_vxrm_body.format(vxrm) + loop_start +include_literal("v" + op_id + ".h") + vx_literal_nonmask_end
+    elif "FRM" in op_attr :
+      if "frm0" in op_attr :
+        frm = 0
+      elif "frm1" in op_attr :
+        frm = 1
+      elif "frm2" in op_attr :
+        frm = 2
+      elif "frm3" in op_attr :
+        frm = 3
+      ret += vx_literal_nonmask_destructive_body_frm.format(frm) + loop_start +include_literal("v" + op_id + ".h") + vx_literal_nonmask_end
     elif "TailAgnostic" in op_attr :
       ret += vx_literal_nonmask_body + include_literal("v" + op_id + ".h") + vx_ta_literal_nonmask_end
     else :
@@ -673,7 +695,17 @@ def create_destructive_vx_op(op_type, op_id, op_attr, output_type, input_num, in
     elif "TailAgnostic" in op_attr :
       ret += vx_literal_nonmask_destructive_body + include_literal("v" + op_id + ".h") + vx_ta_literal_nonmask_destructive_end
     elif "VXRM" in op_attr or "FRM" in op_attr:
-      ret += vx_literal_nonmask_destructive_body_frm + include_literal("v" + op_id + ".h") + vx_literal_nonmask_destructive_end
+      if "frm0" in op_attr :
+        frm = 0
+      elif "frm1" in op_attr :
+        frm = 1
+      elif "frm2" in op_attr :
+        frm = 2
+      elif "frm3" in op_attr :
+        frm = 3
+      elif "frm4" in op_attr :
+        frm = 4
+      ret += vx_literal_nonmask_destructive_body_frm.format(frm) + loop_start + include_literal("v" + op_id + ".h") + vx_literal_nonmask_destructive_end
     else :
       ret += vx_literal_nonmask_destructive_body + include_literal("v" + op_id + ".h") + vx_literal_nonmask_destructive_end
   return ret

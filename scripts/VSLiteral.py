@@ -144,6 +144,7 @@ vs_literal_mask_body = '''
 '''
 
 vs_literal_mask_reduction_body = '''
+// scripts/VSLiteral.py vs_literal_mask_reduction_body
   assert(a->length == b->length && a->length == c->length && a->length == d->length);
 
   auto length = a->length;
@@ -152,6 +153,24 @@ vs_literal_mask_reduction_body = '''
   auto dataA = getRawPointer(b);
   auto dataB = getRawPointer(c);
   auto dataOut = getRawPointer(d);
+
+  auto sew = op->typeInfo->sew.to_int();
+
+  dataOut[0] = dataB[0];
+  for (int i = 0; i < length; ++i) {
+    if (dataM[i]) {
+'''
+
+vs_literal_mask_reduction_frm_body = '''
+// scripts/VSLiteral.py vs_literal_mask_reduction_frm_body
+  assert(a->length == b->length && a->length == c->length && a->length == d->length);
+
+  auto length = a->length;
+
+  auto dataM = getRawPointer(a);
+  auto dataA = getRawPointer(b);
+  auto dataB = getRawPointer(c);
+  auto dataOut = getRawPointer(e);
 
   auto sew = op->typeInfo->sew.to_int();
 
@@ -274,7 +293,10 @@ def create_vs_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
         else:
           ret += vs_literal_mask_reduction_widen_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
       else:
-        ret += vs_literal_mask_reduction_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
+        if "FRM" in op_attr :
+          ret += vs_literal_mask_reduction_frm_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
+        else:
+          ret += vs_literal_mask_reduction_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
     else :
       ret += vs_literal_mask_body + include_literal("v" + op_id + ".h") + vs_tam_literal_mask_end
   else :
