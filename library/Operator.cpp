@@ -651,6 +651,9 @@ void CodeGenForOperator::generateSingleOperatorCode() {
   os << "\n";
 
   std::string counter = CodeGenForOperator::getCounter(os, loopLength);
+    if (hasMask(op) && op->opAttr & FRM) {
+      os << "memset(" << output->id << ", 0xff, sizeof(" << output->id
+         << "));\n";}
   CodeGenForOperator::getLoopStart(os, counter);
   {
     if (haveTailPolicy(op)) {
@@ -694,22 +697,6 @@ struct CodeGenForReductionOperator : CodeGenForOperator {
       vecReduction = "vec_" + opInputs[1].second->id +"_0";
     }
 
-
-    if (op->opAttr & FRM){
-    os << "#if " << op->inputs[opInputs.size()-1]->id << "/5 == 0\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 0\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/5 == 1\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 1\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/5 == 2\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 2\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/5 == 3\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 3\n";
-    os << "#elif " << op->inputs[opInputs.size()-1]->id << "/5 == 4\n";
-    os << "\t" << "#define " << opInputs[opInputs.size()-1].first << " 4\n";
-    os << "#else\n";
-    os << "\t" << "#error \"FRM VALUE should be [0:4]\"\n";
-    os << "#endif\n";}
-
     os << "size_t vl;\n";
     getVL(counter);
     if(hasMask(op)){
@@ -740,7 +727,7 @@ struct CodeGenForReductionOperator : CodeGenForOperator {
             "// tail value in the beginning\n"
             "// before performing actual computing, namely, getting into the\n"
             "// loop.\n";
-      if (hasMask(op) || op->opAttr & WideningOperation){
+      if (hasMask(op) || op->opAttr & WideningOperation || ((op->opAttr & ReductionOperation) && (op->opAttr & FRM))) {
         os << "memset(" << output->id << ", 0xff, sizeof(" << output->id
            << "));\n";
       } else if (hasTU(op)) {

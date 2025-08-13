@@ -94,6 +94,22 @@ vv_literal_nonmask_destructive_body = '''
   for (int i = 0; i < length; ++i) {
 '''
 
+vv_literal_nonmask_destructive_vxrm_body = '''
+  assert(a->length == b->length && a->length == c->length && a->length == e->length);
+
+  auto length = a->length;
+
+  auto dataA = getRawPointer(a);
+  auto dataB = getRawPointer(b);
+  auto dataC = getRawPointer(c);
+  auto dataD = {}; // vxrm
+  auto dataOut = getRawPointer(e);
+
+  auto sew = op->typeInfo->sew.to_int();
+  auto vxrm = dataD;
+  P.VU.set_vround_mode(vxrm);
+'''
+
 vv_literal_nonmask_destructive_frm_body = '''
   assert(a->length == b->length && a->length == c->length && a->length == e->length);
 
@@ -102,18 +118,21 @@ vv_literal_nonmask_destructive_frm_body = '''
   auto dataA = getRawPointer(a);
   auto dataB = getRawPointer(b);
   auto dataC = getRawPointer(c);
-  auto dataD = getRawPointer(d); // frm
+  auto dataD = {}; // frm
   auto dataOut = getRawPointer(e);
 
   auto sew = op->typeInfo->sew.to_int();
+  auto frm = dataD;
+  P.VU.set_fround_mode(frm);
+'''
 
+vv_literal_nonmask_destructive_macro = '''
   #pragma push_macro("VI_VFP_VV_LOOP")
   #undef VI_VFP_VV_LOOP
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataD / 5);                                        \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -136,7 +155,6 @@ vv_literal_nonmask_destructive_frm_body = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataD / 5);                                        \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     vs2 = f16_to_f32(vs2);                                                     \\
@@ -167,7 +185,7 @@ vv_literal_nonmask_end = '''
 
 vv_literal_nonmask_frm_end = '''
   }
-  #pragma push_macro("VI_VFP_VV_LOOP")
+  #pragma pop_macro("VI_VFP_VV_LOOP")
 }
 '''
 
@@ -233,7 +251,7 @@ vv_literal_nonmask_vxrm_body = '''
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
-  auto vxrm = dataC/4;
+  auto vxrm = dataC;
   P.VU.set_vround_mode(vxrm);
 '''
 
@@ -249,21 +267,22 @@ vv_literal_nonmask_frm_body = '''
 
   auto dataA = getRawPointer(a); // vs2
   auto dataB = getRawPointer(b); // vs1
-  auto dataC = getRawPointer(c);// c means frm
+  auto dataC = {};// frm
   auto dataOut = getRawPointer(d);
 
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
-
+  auto frm = dataC;
+  P.VU.set_fround_mode(frm);
+'''
+vv_literal_nonmask_frm_body_macro = '''
   #pragma push_macro("VI_VFP_VV_LOOP")
   #undef VI_VFP_VV_LOOP
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
   RIF::RawDatumOperand vs2(dataA[i]);                                          \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataC / 5);                                        \\
   RIF::RawDatumOperand vd(dataOut[i]);                                         \\
-  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -292,21 +311,23 @@ vv_literal_masked_no_maskedoff_frm_body = '''
   auto dataM = getRawPointer(a); // mask
   auto dataA = getRawPointer(b); // vs2
   auto dataB = getRawPointer(c); // vs1
-  auto dataC = getRawPointer(d);// c means frm
+  auto dataC = {}; // frm
   auto dataOut = getRawPointer(e);
 
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
+  auto frm = dataC;
+  P.VU.set_fround_mode(frm);
+'''
 
+vv_literal_masked_no_maskedoff_frm_body_macro = '''
   #pragma push_macro("VI_VFP_VV_LOOP")
   #undef VI_VFP_VV_LOOP
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
   RIF::RawDatumOperand vs2(dataA[i]);                                          \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vd(dataOut[i]);                                         \\
-  RIF::RawDatumOperand frm(*dataC / 5);                                        \\
-  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -336,21 +357,22 @@ vv_literal_masked_no_maskedoff_frm_widen_body = '''
   auto dataM = getRawPointer(a); // mask
   auto dataA = getRawPointer(b); // vs2
   auto dataB = getRawPointer(c); // vs1
-  auto dataC = getRawPointer(d); // c means frm
+  auto dataC = {}; // frm
   auto dataOut = getRawPointer(e);
 
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
-
+  auto frm = dataC;
+  P.VU.set_fround_mode(frm);
+'''
+vv_literal_masked_no_maskedoff_frm_widen_body_macro = '''
   #pragma push_macro("VI_VFP_VV_LOOP")
   #undef VI_VFP_VV_LOOP
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
   RIF::RawDatumOperand vs2(dataA[i]);                                          \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataC / 5);                                        \\
   RIF::RawDatumOperand vd(dataOut[i]);                                         \\
-  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -460,19 +482,18 @@ vv_literal_mask_body_destructive_frm = '''
   auto dataA = getRawPointer(b);
   auto dataB = getRawPointer(c);
   auto dataC = getRawPointer(d);
-  auto dataD = {frm} // frm
+  auto dataD = {}; // frm
   auto dataOut = getRawPointer(f);
 
   auto sew = op->typeInfo->sew.to_int();
-
+'''
+vv_literal_mask_body_destructive_frm_macro = '''
   #pragma push_macro("VI_VFP_VV_LOOP")
   #undef VI_VFP_VV_LOOP
   #define VI_VFP_VV_LOOP(BODY16, BODY32, BODY64)                               \\
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataD / 5);                                        \\
-  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     BODY16;                                                                    \\
@@ -495,8 +516,6 @@ vv_literal_mask_body_destructive_frm = '''
   RIF::RawDatumOperand vd(dataA[i]);                                           \\
   RIF::RawDatumOperand vs1(dataB[i]);                                          \\
   RIF::RawDatumOperand vs2(dataC[i]);                                          \\
-  RIF::RawDatumOperand frm(*dataD / 5);                                        \\
-  softfloat_roundingMode = frm;                                                \\
   switch (sew) {                                                               \\
   case e16:                                                                    \\
     vs2 = f16_to_f32(vs2);                                                     \\
@@ -513,7 +532,9 @@ vv_literal_mask_body_destructive_frm = '''
     break;                                                                     \\
   }                                                                            \\
   dataOut[i] = vd;
+'''
 
+mask_loop_start = '''
   for (int i = 0; i < length; ++i) {
     if (dataM[i]) {
 '''
@@ -533,7 +554,6 @@ vv_literal_mask_frm_end = '''
     }
   }
   #pragma pop_macro("VI_VFP_VV_LOOP")
-  #pragma pop_macro("VI_VFP_VV_LOOP_WIDE")
 }
 '''
 
@@ -658,7 +678,7 @@ vv_literal_masked_no_maskedoff_vxrm_body = '''
   auto dataC = {}; // dataC is vxrm
   auto dataOut = getRawPointer(e);
 
-  auto vxrm = dataC/4;
+  auto vxrm = dataC;
   P.VU.set_vround_mode(vxrm);
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = b->typeInfo->sew.to_int(); // for index load / store only
@@ -783,7 +803,7 @@ vv_tumu_literal_mask_end = '''
 }
 '''
 
-def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_vv_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += vv_literal_start0 + op_type + vv_literal_start1
   for i in range(input_num) :
@@ -795,12 +815,39 @@ def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
     if "TailAgnostic" in op_attr and "MaskAgnostic" in op_attr : # tama
       ret += vv_literal_masked_no_maskedoff_body + include_literal("v" + op_id + ".h") + vv_tama_literal_mask_end
     elif "VXRM" in op_attr :
-      vxrm = 0
+      if "vxrm0" in op_attr: # vxrm0
+        vxrm = 0
+      elif "vxrm1" in op_attr:
+        vxrm = 1
+      elif "vxrm2" in op_attr:
+        vxrm = 2
+      elif "vxrm3" in op_attr:
+        vxrm = 3
       ret += vv_literal_masked_no_maskedoff_vxrm_body.format(vxrm) + mask_loop_start + include_literal("v" + op_id + ".h") + vv_literal_mask_end
     elif "FRM" in op_attr and "WideningOperation" not in op_attr: # frm
-      ret += vv_literal_masked_no_maskedoff_frm_body + include_literal("v" + op_id + ".h") + vv_literal_mask_frm_end
+      if "frm0" in op_attr :
+        frm = 0
+      elif "frm1" in op_attr :
+        frm = 1
+      elif "frm2" in op_attr :
+        frm = 2
+      elif "frm3" in op_attr :
+        frm = 3
+      elif "frm4" in op_attr :
+        frm = 4
+      ret += vv_literal_masked_no_maskedoff_frm_body.format(frm) + vv_literal_masked_no_maskedoff_frm_body_macro + include_literal("v" + op_id + ".h") + vv_literal_mask_frm_end
     elif "FRM" in op_attr and "WideningOperation" in op_attr: # frm
-      ret += vv_literal_masked_no_maskedoff_frm_widen_body + include_literal("v" + op_id + ".h") + vv_literal_mask_frm_widen_end
+      if "frm0" in op_attr :
+        frm = 0
+      elif "frm1" in op_attr :
+        frm = 1
+      elif "frm2" in op_attr :
+        frm = 2
+      elif "frm3" in op_attr :
+        frm = 3
+      elif "frm4" in op_attr :
+        frm = 4
+      ret += vv_literal_masked_no_maskedoff_frm_widen_body.format(frm) + vv_literal_masked_no_maskedoff_frm_widen_body_macro + include_literal("v" + op_id + ".h") + vv_literal_mask_frm_widen_end
     elif "TailAgnostic" in op_attr and "MaskUndisturbed" in op_attr : # tamu
       ret += vv_literal_mask_body + include_literal("v" + op_id + ".h") + vv_tamu_literal_mask_end
     elif "TailUndisturbed" in op_attr and "MaskAgnostic" in op_attr : # tuma
@@ -818,15 +865,32 @@ def create_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, 
     elif "TailAgnostic" in op_attr :
         ret += vv_literal_nonmask_body + include_literal("v" + op_id + ".h") + vv_ta_literal_nonmask_end
     elif "VXRM" in op_attr :
+      if "vxrm0" in op_attr: # vxrm0
         vxrm = 0
-        ret += vv_literal_nonmask_vxrm_body.format(vxrm) + loop_start + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
+      elif "vxrm1" in op_attr:
+        vxrm = 1
+      elif "vxrm2" in op_attr:
+        vxrm = 2
+      elif "vxrm3" in op_attr:
+        vxrm = 3
+      ret += vv_literal_nonmask_vxrm_body.format(vxrm) + loop_start + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
     elif "FRM" in op_attr:
-        ret += vv_literal_nonmask_frm_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_frm_end
+      if "frm0" in op_attr :
+        frm = 0
+      elif "frm1" in op_attr :
+        frm = 1
+      elif "frm2" in op_attr :
+        frm = 2
+      elif "frm3" in op_attr :
+        frm = 3
+      elif "frm4" in op_attr :
+        frm = 4
+      ret += vv_literal_nonmask_frm_body.format(frm) + vv_literal_nonmask_frm_body_macro + include_literal("v" + op_id + ".h") + vv_literal_nonmask_frm_end
     else :
       ret += vv_literal_nonmask_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_end
   return ret
 
-def create_destructive_vv_op(op_type, op_id, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
+def create_destructive_vv_op(op_type, op_id, sew, op_attr, output_type, input_num, input_nfield, output_nfield, input_types) :
   ret = ""
   ret += vv_literal_start0 + op_type + vv_literal_start1
   for i in range(input_num) :
@@ -843,9 +907,18 @@ def create_destructive_vv_op(op_type, op_id, op_attr, output_type, input_num, in
       ret += vv_literal_mask_body_destructive + include_literal("v" + op_id + ".h") + vv_tuma_literal_mask_destructive_end
     elif "TailUndisturbed" in op_attr and "MaskUndisturbed" in op_attr : # tumu
       ret += vv_literal_mask_body_destructive + include_literal("v" + op_id + ".h") + vv_tumu_literal_mask_destructive_end
-    elif "VXRM" in op_attr or "FRM" in op_attr: # vxrm
-      vxrm = 0
-      ret += vv_literal_mask_body_destructive_frm + include_literal("v" + op_id + ".h") + vv_literal_mask_destructive_frm_end
+    elif "FRM" in op_attr: # vxrm
+      if "frm0" in op_attr :
+        frm = 0
+      elif "frm1" in op_attr :
+        frm = 1
+      elif "frm2" in op_attr :
+        frm = 2
+      elif "frm3" in op_attr :
+        frm = 3
+      elif "frm4" in op_attr :
+        frm = 4
+      ret += vv_literal_mask_body_destructive_frm.format(frm) + vv_literal_mask_body_destructive_frm_macro + mask_loop_start + include_literal("v" + op_id + ".h") + vv_literal_mask_destructive_frm_end
     else : # No explicit policy specified
       ret += vv_literal_mask_body_destructive + include_literal("v" + op_id + ".h") + vv_literal_mask_destructive_end
   else :
@@ -853,13 +926,33 @@ def create_destructive_vv_op(op_type, op_id, op_attr, output_type, input_num, in
         ret += vv_literal_nonmask_destructive_body + include_literal("v" + op_id + ".h") + vv_tu_literal_nonmask_destructive_end
     elif "TailAgnostic" in op_attr :
         ret += vv_literal_nonmask_destructive_body + include_literal("v" + op_id + ".h") + vv_ta_literal_nonmask_destructive_end
-    elif "VXRM" in op_attr or "FRM" in op_attr:
-        ret += vv_literal_nonmask_destructive_frm_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_destructive_end
+    elif "VXRM" in op_attr:
+      if "vxrm0" in op_attr: # vxrm0
+        vxrm = 0
+      elif "vxrm1" in op_attr:
+        vxrm = 1
+      elif "vxrm2" in op_attr:
+        vxrm = 2
+      elif "vxrm3" in op_attr:
+        vxrm = 3
+      ret += vv_literal_nonmask_destructive_vxrm_body.format(vxrm) + vv_literal_nonmask_destructive_macro + include_literal("v" + op_id + ".h") + vv_literal_nonmask_destructive_end
+    elif "FRM" in op_attr:
+      if "frm0" in op_attr :
+        frm = 0
+      elif "frm1" in op_attr :
+        frm = 1
+      elif "frm2" in op_attr :
+        frm = 2
+      elif "frm3" in op_attr :
+        frm = 3
+      elif "frm4" in op_attr :
+        frm = 4
+      ret += vv_literal_nonmask_destructive_frm_body.format(frm) + vv_literal_nonmask_destructive_macro + include_literal("v" + op_id + ".h") + vv_literal_nonmask_destructive_end
     else :
       ret += vv_literal_nonmask_destructive_body + include_literal("v" + op_id + ".h") + vv_literal_nonmask_destructive_end
   return ret
 
-def create_masked_no_maskedoff_vv_op(op_type, op_id, op_attr, output_type, input_nfield, output_nfield, input_num, input_types) :
+def create_masked_no_maskedoff_vv_op(op_type, op_id, sew, op_attr, output_type, input_nfield, output_nfield, input_num, input_types) :
   ret = ""
   ret += vv_literal_start0 + op_type + vv_literal_start1
   for i in range(input_num) :
