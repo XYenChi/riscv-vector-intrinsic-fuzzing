@@ -905,6 +905,12 @@ inline float64_t f64(uint64_t v) { return {v}; }
         dataA[i];                                                              \
   }
 
+#define VI_LOOP_BASE                                                           \
+  auto vs1 = dataB[i];                                                         \
+  auto rs1_num = dataB;                                                        \
+  auto rs2_num = dataA;                                                        \
+  auto rd_num = dataOut;
+
 #define STRIDED_LOAD dataOut[i] = *(dataA + i * stride);
 #define STRIDED_STORE *(dataOut + i * stride) = dataA[i];
 
@@ -914,8 +920,10 @@ inline float64_t f64(uint64_t v) { return {v}; }
 #define VI_CHECK_SSS(...)
 #define require_vector(...)
 #define require_extension(...)
-#define VI_LOOP_BASE
 #define VI_LOOP_END
 #define P_SET_OV(...)
+#define require(...)
+#define require_vm
+#define require_align(...)
 
 #endif

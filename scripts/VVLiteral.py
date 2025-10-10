@@ -12,6 +12,7 @@ vv_literal_nonmask_body = '''
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
+  P.VU.vlmax = length;
 
   for (int i = 0; i < length; ++i) {
 '''
@@ -394,7 +395,8 @@ vv_literal_masked_no_maskedoff_frm_widen_body_macro = '''
 '''
 
 vv_literal_mask_body = '''
-  assert(a->length == b->length && a->length == c->length && a->length == d->length);
+  // scripts/VVLiteral.py vv_literal_mask_body
+  assert(a->length == b->length && a->length == d->length);
 
   auto length = a->length;
 
@@ -406,6 +408,7 @@ vv_literal_mask_body = '''
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = c->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
+  P.VU.vlmax = length;
 
   for (int i = 0; i < length; ++i) {
     if (dataM[i]) {
