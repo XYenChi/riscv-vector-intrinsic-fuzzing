@@ -29,7 +29,7 @@ define cmd
 endef
 
 all:
-	-$(MAKE) -k run
+	-$(MAKE) run
 	$(MAKE) report
 	@echo "Test done"
 
