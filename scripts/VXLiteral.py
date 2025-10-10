@@ -273,6 +273,7 @@ vx_literal_mask_body = '''
 
   auto sew = op->typeInfo->sew.to_int();
   P.VU.vsew = sew;
+  P.VU.vlmax = length;
   auto RS1 = *dataB; // for vrgather.vx
 
   for (int i = 0; i < length; ++i) {
