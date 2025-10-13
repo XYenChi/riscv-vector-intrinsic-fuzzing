@@ -12,7 +12,7 @@ vv_literal_nonmask_body = '''
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = a->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
-  P.VU.vlmax = length;
+  P.VU.vlmax = (256 / sew) > length ? (256 / sew) : length;
 
   for (int i = 0; i < length; ++i) {
 '''
@@ -408,7 +408,7 @@ vv_literal_mask_body = '''
   auto sew = op->typeInfo->sew.to_int();
   auto dataASew = c->typeInfo->sew.to_int(); // for index load / store only
   P.VU.vsew = sew;
-  P.VU.vlmax = length;
+  P.VU.vlmax = (256 / sew) > length ? (256 / sew) : length;
 
   for (int i = 0; i < length; ++i) {
     if (dataM[i]) {

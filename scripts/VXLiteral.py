@@ -11,7 +11,7 @@ vx_literal_nonmask_body = '''
 
   auto sew = op->typeInfo->sew.to_int();
   P.VU.vsew = sew;
-  P.VU.vlmax = length;
+  P.VU.vlmax = (256 / sew) > length ? (256 / sew) : length;
   auto RS1 = *dataB; // for vrgather.vx
 
   for (int i = 0; i < length; ++i) {
@@ -273,7 +273,7 @@ vx_literal_mask_body = '''
 
   auto sew = op->typeInfo->sew.to_int();
   P.VU.vsew = sew;
-  P.VU.vlmax = length;
+  P.VU.vlmax = (256 / sew) > length ? (256 / sew) : length;
   auto RS1 = *dataB; // for vrgather.vx
 
   for (int i = 0; i < length; ++i) {
